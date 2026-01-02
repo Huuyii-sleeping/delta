@@ -18,6 +18,21 @@
       <button onmousedown="event.preventDefault(); editor.format('bold', null)">
         Clear Bold
       </button>
+      <button
+        onmousedown="event.preventDefault(); editor.formatLine('header', 1)"
+      >
+        H1
+      </button>
+      <button
+        onmousedown="event.preventDefault(); editor.formatLine('header', 2)"
+      >
+        H2
+      </button>
+      <button
+        onmousedown="event.preventDefault(); editor.formatLine('header', null)"
+      >
+        Clear Header
+      </button>
     </div>
     <div id="editor"></div>
     <script type="module">

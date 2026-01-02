@@ -112,11 +112,64 @@ export class Editor {
     const change = new Delta()
       .retain(range.index) // 跳过前面的内容
       .retain(range.length, { [format]: value }); // 对选中的内容进行格式化
-    console.log(change);
     this.doc = this.doc.compose(change);
     this.updateView();
     // 恢复原来的选区
     this.selection.setSelection(range.index, safeLength);
     console.log("Applied Format:", format, value);
+  }
+
+  /**
+   * 格式化当前行（块级样式）
+   * @param format 
+   * @param value 
+   * @returns 
+   */
+  formatLine(format: string, value: any) {
+    const range = this.selection.getSelection();
+    if (!range) return;
+
+    // 找到当前行的结尾 => 换行符的位置
+    const lineEndIndex = this._findLineEnd(range.index);
+
+    const change = new Delta()
+      .retain(lineEndIndex)
+      .retain(1, { [format]: value });
+
+    console.log("Apply Block Format:", JSON.stringify(change.ops));
+    this.doc = this.doc.compose(change);
+    this.updateView();
+
+    this.selection.setSelection(range.index, range.length);
+  }
+
+  /**
+   * 辅助方法：
+   * 找到当前位置最后的第一个换行符的索引
+   * 用于定位当前行的结尾，以便于应用块级样式
+   * @param startIndex
+   */
+  private _findLineEnd(startIndex: number): number {
+    let currentPos = 0;
+
+    for (const op of this.doc.ops) {
+      const len = typeof op.insert === "string" ? op.insert.length : 1;
+
+      // 如果当前的op在我们查找的范围之后，或者包含查找起点
+      if (currentPos + len > startIndex) {
+        if (typeof op.insert === "string") {
+          const offsetInOp = Math.max(0, startIndex - currentPos);
+          const relativeIndex = op.insert.indexOf("\n", offsetInOp);
+
+          if (relativeIndex !== -1) {
+            // 返回绝对索引，Op起始位置+偏移的位置
+            return currentPos + relativeIndex;
+          }
+        }
+      }
+      currentPos += len;
+    }
+
+    return this.doc.length();
   }
 }
