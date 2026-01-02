@@ -22,7 +22,7 @@ export class SelectionManager {
     // 创建一个临时的Range，从编辑器的开头选到光标位置 这样就能定位到具体的光标位置上了
     const preCaretRange = range.cloneRange();
     preCaretRange.selectNodeContents(this.dom); // 先选中所有
-    preCaretRange.setEnd(range.endContainer, range.endOffset); // 将终点缩回到光标位置
+    preCaretRange.setEnd(range.startContainer, range.startOffset); // 将终点缩回到光标位置
 
     // 这个range的文本长度，就是我们的index
     // ！：toStirng，不同的浏览器可能会有细微的差异，但是现在只是简单的实现
@@ -40,16 +40,25 @@ export class SelectionManager {
    * 核心难点：遍历DOM树，将扁平的index映射回具体的Node和Offset
    * @param index
    */
-  setSelection(index: number) {
+  setSelection(index: number, length: number = 0) {
     const target = this._findNodeAndOffset(index);
 
     if (target) {
       const selection = window.getSelection();
       const range = document.createRange();
 
-      // 设置光标的初始位置和终点
-      range.setStart(target.node, target.offset);
-      range.collapse(true); // 折叠光标，使其变成一个点
+      const start = this._findNodeAndOffset(index);
+      if (!start) return;
+      range.setStart(start.node, start.offset);
+
+      if (length > 0) {
+        const end = this._findNodeAndOffset(index + length);
+        if (end) {
+          range.setEnd(end.node, end.offset);
+        }
+      } else {
+        range.collapse(true);
+      }
 
       selection?.removeAllRanges(); // 清除旧光标
       selection?.addRange(range); // 添加新光标

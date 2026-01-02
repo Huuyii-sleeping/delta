@@ -6,11 +6,26 @@
     <title>Document</title>
   </head>
   <body>
+    <div class="toolbar" style="margin-bottom: 10px">
+      <button onmousedown="event.preventDefault(); editor.format('bold', true)">
+        Bold
+      </button>
+      <button
+        onmousedown="event.preventDefault(); editor.format('color', 'red')"
+      >
+        Red
+      </button>
+      <button onmousedown="event.preventDefault(); editor.format('bold', null)">
+        Clear Bold
+      </button>
+    </div>
     <div id="editor"></div>
     <script type="module">
       import { Editor } from "./Editor/Editor.ts";
 
       const editor = new Editor("#editor");
+
+      window.editor = editor;
     </script>
   </body>
 </html>

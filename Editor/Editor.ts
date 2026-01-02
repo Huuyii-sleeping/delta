@@ -76,4 +76,41 @@ export class Editor {
     console.warn("未处理的输入类型:", e.inputType);
     return null;
   }
+
+  /**
+   * 文档内容的格式化
+   * @param format 属性名
+   * @param value 属性值
+   */
+  format(format: string, value: any) {
+    // 获取当前选取
+    const range = this.selection.getSelection();
+    console.log(range)
+    if (!range || range.length === 0) return;
+
+    // 只有选中了文本才会处理
+    // 如果光标只是闪烁状态，通常是“设置下面的格式”
+
+    const docLength = this.doc.length();
+
+    let safeLength = range.length;
+    if (range.index + safeLength > docLength) {
+      safeLength = docLength - range.index;
+      console.warn(
+        `选区越界修正: 原长 ${range.length} -> 修正后 ${safeLength}`
+      );
+    }
+
+    if(safeLength <= 0) return 
+
+    const change = new Delta()
+      .retain(range.index) // 跳过前面的内容
+      .retain(range.length, { [format]: value }); // 对选中的内容进行格式化
+    console.log(change)
+    this.doc = this.doc.compose(change);
+    this.updateView();
+    // 恢复原来的选区
+    this.selection.setSelection(range.index, safeLength);
+    console.log("Applied Format:", format, value);
+  }
 }

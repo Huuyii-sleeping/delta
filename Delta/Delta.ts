@@ -65,11 +65,7 @@ class Delta {
     }
 
     // 连续insert 并且 属性attribute 相同 直接进行合并
-    if (
-      typeof lastOp.insert === "string" &&
-      typeof newOp.insert === "string" &&
-      lastOp.attributes === newOp.attributes
-    ) {
+    if (typeof lastOp.insert === "string" && typeof newOp.insert === "string") {
       if (isEqual(lastOp.attributes, newOp.attributes)) {
         lastOp.insert += newOp.insert;
         return this.ops;
@@ -83,13 +79,11 @@ class Delta {
     }
 
     // 连续retain 属性相同合并
-    if (
-      typeof lastOp.retain === "number" &&
-      typeof newOp.retain === "number" &&
-      lastOp.attributes === newOp.attributes
-    ) {
-      lastOp.retain += newOp.retain;
-      return this.ops;
+    if (typeof lastOp.retain === "number" && typeof newOp.retain === "number") {
+      if (isEqual(lastOp.attributes, newOp.attributes)) {
+        lastOp.retain += newOp.retain;
+        return this.ops;
+      }
     }
 
     this.ops.push(newOp);

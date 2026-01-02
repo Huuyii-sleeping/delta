@@ -62,8 +62,15 @@ describe("Editor Controller", () => {
 
   it("应该拦截 deleteContentBackward (退格键) 并更新视图", () => {
     const editor = new Editor("#editor");
-    // 初始内容是 "Hello World\n" (长度 12)
+    // 初始内容 "Hello World\n" (长度 12)
     const initialLength = editor.doc.length();
+
+    // 🔴 核心修复：模拟光标在文档末尾
+    // 告诉编辑器：现在光标在第 12 个位置
+    vi.spyOn(editor.selection, "getSelection").mockReturnValue({
+      index: initialLength,
+      length: 0,
+    });
 
     // 1. 模拟按下退格键
     const event = new InputEvent("beforeinput", {
@@ -81,7 +88,7 @@ describe("Editor Controller", () => {
     expect(preventDefaultSpy).toHaveBeenCalled();
 
     // 验证 B: 模型长度减少 1
-    // 你的逻辑是 retain(length-1).delete(1)，即删除最后一个字符
+    // 现在光标在 12，退格键会删掉第 11 个字符
     expect(editor.doc.length()).toBe(initialLength - 1);
   });
 
