@@ -19,20 +19,86 @@ export class SelectionManager {
     const range = selection.getRangeAt(0);
     if (!this.dom.contains(range.startContainer)) return null;
 
-    // 创建一个临时的Range，从编辑器的开头选到光标位置 这样就能定位到具体的光标位置上了
-    const preCaretRange = range.cloneRange();
-    preCaretRange.selectNodeContents(this.dom); // 先选中所有
-    preCaretRange.setEnd(range.startContainer, range.startOffset); // 将终点缩回到光标位置
+    // 找到光标所在行 就是编辑器所在的直接子元素
+    const startLine = this._getLineNode(range.startContainer);
+    const endLine = this._getLineNode(range.endContainer);
 
-    // 这个range的文本长度，就是我们的index
-    // ！：toStirng，不同的浏览器可能会有细微的差异，但是现在只是简单的实现
-    const start = preCaretRange.toString().length;
-    const length = range.toString().length;
+    if (!startLine) return null;
+
+    const startIndex =
+      this._calculateLineIndex(startLine) +
+      this._getOffsetInLine(startLine, range.startContainer, range.startOffset);
+
+    // 计算出终点索引
+    let endIndex = startIndex;
+    if (range.collapsed) {
+      endIndex = startIndex;
+    } else if (endLine) {
+      endIndex =
+        this._calculateLineIndex(endLine) +
+        this._getOffsetInLine(endLine, range.endContainer, range.endOffset);
+    }
 
     return {
-      index: start,
-      length: length,
+      index: startIndex,
+      length: endIndex - startIndex,
     };
+  }
+
+  /**
+   * 给定一个深层嵌套的DOM节点，找到属于【哪一行】
+   * 就是编辑器直接的子元素 ‘div’
+   * @param node 
+   * @returns 
+   */
+  private _getLineNode(node: Node): Element | null {
+    let current: Node | null = node;
+    while (current && current !== this.dom) {
+      if (current.parentNode === this.dom) {
+        return current as Element;
+      }
+      current = current.parentNode;
+    }
+    return null;
+  }
+
+  /**
+   * 累加器
+   * 计算目标行之前所有行的长度总和
+   * @param targetLine 
+   * @returns 
+   */
+  private _calculateLineIndex(targetLine: Element): number {
+    let index = 0;
+    const lines = this.dom.children;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line === targetLine) break;
+
+      // 强制手动的加上浏览器吃掉的回车 \n 
+      const text = line.textContent || "";
+      index += text.length + 1;
+    }
+    return index;
+  }
+
+  /**
+   * 局部测量，找到在本行当中的偏移量
+   * @param line 
+   * @param node 
+   * @param offset 
+   * @returns 
+   */
+  private _getOffsetInLine(line: Element, node: Node, offset: number): number {
+    const range = document.createRange();
+
+    if (node === line) {
+      return 0;
+    }
+
+    range.setStart(line, 0);
+    range.setEnd(node, offset);
+    return range.toString().length;
   }
 
   /**
@@ -75,30 +141,71 @@ export class SelectionManager {
   } | null {
     let currentLength = 0;
 
+    // 我们的render渲染出来的子元素就是行
+    const lines = this.dom.children;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const lineText = line.textContent || "";
+
+      const lineLength = lineText.length + 1;
+
+      if (currentLength + lineLength > targetIndex) {
+        return this._findInLine(line, targetIndex - currentLength);
+      }
+      currentLength += lineLength;
+    }
+
+    return null;
+  }
+
+  /**
+   * 在单行当中找到正确的位置
+   * @param element
+   * @param localIndex
+   * @returns
+   */
+  private _findInLine(
+    element: Element,
+    localIndex: number
+  ): { node: Node; offset: number } | null {
+    if (element.textContent === "") return { node: element, offset: 0 };
+
+    if (localIndex === 0) {
+      const firstText = this._findFirstTextNode(element);
+      return firstText
+        ? { node: firstText, offset: 0 }
+        : { node: element, offset: 0 };
+    }
+
     const walker = document.createTreeWalker(
-      this.dom,
-      NodeFilter.SHOW_TEXT, // 只关注文本节点
+      element,
+      NodeFilter.SHOW_TEXT,
       null
     );
 
     let node = walker.nextNode();
+    let current = 0;
     while (node) {
-      const textLength = node.textContent ? node.textContent.length : 0;
-
-      // 判断索引的位置是否就在这个length节点内部
-      if (currentLength + textLength >= targetIndex) {
-        return {
-          node: node,
-          offset: targetIndex - currentLength,
-        };
+      const len = node.textContent?.length || 0;
+      if (current + len >= localIndex) {
+        return { node: node, offset: localIndex - current };
       }
 
-      currentLength += textLength;
-
-      // [TODO] 这里可能会有换行符的坑，有问题就回来解决
+      current += len;
       node = walker.nextNode();
     }
 
-    return null;
+    return { node: element, offset: 0 };
+  }
+
+  /**
+   * 找到一行当中的第一个文本节点
+   * @param root
+   * @returns
+   */
+  private _findFirstTextNode(root: Node): Node | null {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    return walker.nextNode();
   }
 }

@@ -53,6 +53,8 @@ export class Editor {
           newIndex += e.data.length;
         } else if (e.inputType === "deleteContentBackward") {
           newIndex = Math.max(0, newIndex - 1);
+        } else if (e.inputType === "insertParagraph") {
+          newIndex += 1;
         }
 
         this.selection.setSelection(newIndex);
@@ -73,6 +75,10 @@ export class Editor {
       return new Delta().retain(index - 1).delete(1);
     }
 
+    if (e.inputType === "insertParagraph") {
+      return new Delta().retain(index).insert("\n");
+    }
+
     console.warn("未处理的输入类型:", e.inputType);
     return null;
   }
@@ -85,7 +91,7 @@ export class Editor {
   format(format: string, value: any) {
     // 获取当前选取
     const range = this.selection.getSelection();
-    console.log(range)
+    console.log(range);
     if (!range || range.length === 0) return;
 
     // 只有选中了文本才会处理
@@ -101,12 +107,12 @@ export class Editor {
       );
     }
 
-    if(safeLength <= 0) return 
+    if (safeLength <= 0) return;
 
     const change = new Delta()
       .retain(range.index) // 跳过前面的内容
       .retain(range.length, { [format]: value }); // 对选中的内容进行格式化
-    console.log(change)
+    console.log(change);
     this.doc = this.doc.compose(change);
     this.updateView();
     // 恢复原来的选区
