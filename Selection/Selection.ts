@@ -48,13 +48,21 @@ export class SelectionManager {
   /**
    * 给定一个深层嵌套的DOM节点，找到属于【哪一行】
    * 就是编辑器直接的子元素 ‘div’
-   * @param node 
-   * @returns 
+   * @param node
+   * @returns
    */
   private _getLineNode(node: Node): Element | null {
     let current: Node | null = node;
     while (current && current !== this.dom) {
       if (current.parentNode === this.dom) {
+        return current as Element;
+      }
+      if (
+        current.parentNode &&
+        (current.parentNode.nodeName === "UL" ||
+          current.parentNode.nodeName === "OL") &&
+        current.parentNode.parentNode === this.dom
+      ) {
         return current as Element;
       }
       current = current.parentNode;
@@ -65,29 +73,36 @@ export class SelectionManager {
   /**
    * 累加器
    * 计算目标行之前所有行的长度总和
-   * @param targetLine 
-   * @returns 
+   * @param targetLine
+   * @returns
    */
   private _calculateLineIndex(targetLine: Element): number {
     let index = 0;
-    const lines = this.dom.children;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line === targetLine) break;
+    const topLevelNodes = this.dom.children;
+    for (let i = 0; i < topLevelNodes.length; i++) {
+      const node = topLevelNodes[i];
 
-      // 强制手动的加上浏览器吃掉的回车 \n 
-      const text = line.textContent || "";
-      index += text.length + 1;
+      if (node.tagName === "UL" || node.tagName === "OL") {
+        const listItems = node.children;
+        for (let j = 0; j < listItems.length; j++) {
+          const li = listItems[j];
+          if (li === targetLine) return index;
+          index += (li.textContent || "").length + 1;
+        }
+      } else {
+        if (node === targetLine) return index;
+        index += (node.textContent || "").length + 1;
+      }
     }
     return index;
   }
 
   /**
    * 局部测量，找到在本行当中的偏移量
-   * @param line 
-   * @param node 
-   * @param offset 
-   * @returns 
+   * @param line
+   * @param node
+   * @param offset
+   * @returns
    */
   private _getOffsetInLine(line: Element, node: Node, offset: number): number {
     const range = document.createRange();
@@ -142,20 +157,32 @@ export class SelectionManager {
     let currentLength = 0;
 
     // 我们的render渲染出来的子元素就是行
-    const lines = this.dom.children;
+    const topLevelNodes = this.dom.children;
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const lineText = line.textContent || "";
+    for (let i = 0; i < topLevelNodes.length; i++) {
+      const node = topLevelNodes[i];
 
-      const lineLength = lineText.length + 1;
+      if (node.tagName === "UL" || node.tagName === "OL") {
+        const listItems = node.children;
+        for (let j = 0; j < listItems.length; j++) {
+          const li = listItems[j];
+          const lineText = li.textContent || "";
+          const lineLength = lineText.length + 1;
 
-      if (currentLength + lineLength > targetIndex) {
-        return this._findInLine(line, targetIndex - currentLength);
+          if (currentLength + lineLength > targetIndex) {
+            return this._findInLine(li, targetIndex - currentLength);
+          }
+          currentLength += lineLength;
+        }
+      } else {
+        const lineText = node.textContent || "";
+        const lineLength = lineText.length + 1;
+        if (currentLength + lineLength > targetIndex) {
+          return this._findInLine(node, targetIndex - currentLength);
+        }
+        currentLength += lineLength;
       }
-      currentLength += lineLength;
     }
-
     return null;
   }
 

@@ -4,13 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
+    <style>
+      #editor ul,
+      #editor ol {
+        padding-left: 24px;
+        margin: 8px 0;
+      }
+
+      #editor li {
+        margin-bottom: 4px;
+      }
+    </style>
   </head>
   <body>
     <div class="toolbar" style="margin-bottom: 10px">
       <button onmousedown="event.preventDefault(); editor.format('bold', true)">
         Bold
       </button>
-      <button onmousedown="event.preventDefault(); editor.format('italic', true)">Em</button>
+      <button
+        onmousedown="event.preventDefault(); editor.format('italic', true)"
+      >
+        Em
+      </button>
       <button
         onmousedown="event.preventDefault(); editor.format('color', 'red')"
       >
@@ -19,7 +34,9 @@
       <button onmousedown="event.preventDefault(); editor.format('bold', null)">
         Clear Bold
       </button>
-      <button onmousedown="event.preventDefault(); editor.format('italic', null)">
+      <button
+        onmousedown="event.preventDefault(); editor.format('italic', null)"
+      >
         Clear Em
       </button>
       <button
@@ -36,6 +53,21 @@
         onmousedown="event.preventDefault(); editor.formatLine('header', null)"
       >
         Clear Header
+      </button>
+      <button
+        onmousedown="event.preventDefault(); editor.formatLine('list', 'bullet')"
+      >
+        Bullet
+      </button>
+      <button
+        onmousedown="event.preventDefault(); editor.formatLine('list', 'ordered')"
+      >
+        Number
+      </button>
+      <button
+        onmousedown="event.preventDefault(); editor.formatLine('list', 'null')"
+      >
+        No Lis
       </button>
     </div>
     <div id="editor"></div>

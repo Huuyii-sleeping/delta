@@ -47,6 +47,7 @@ export class Editor {
       // 自己计算出Delta的变更
       const change = this.getDeltaFromInput(e, currentIndex);
       if (change) {
+        const oldDocLength = this.doc.length();
         // compose 之前记录旧的文档，因为要对比旧的文档生成历史记录
         this.history.record(change, this.doc, range);
         this.doc = this.doc.compose(change);
@@ -54,12 +55,12 @@ export class Editor {
 
         // 调用setSelection恢复光标的位置
         let newIndex = currentIndex;
-        if (e.inputType === "insertText" && e.data) {
-          newIndex += e.data.length;
-        } else if (e.inputType === "deleteContentBackward") {
+        const newDocLength = this.doc.length();
+        if (e.inputType === "deleteContentBackward") {
           newIndex = Math.max(0, newIndex - 1);
-        } else if (e.inputType === "insertParagraph") {
-          newIndex += 1;
+        } else {
+          const diff = newDocLength - oldDocLength;
+          if (diff > 0) newIndex += diff;
         }
 
         this.selection.setSelection(newIndex);
@@ -101,6 +102,11 @@ export class Editor {
     if (e.inputType === "insertParagraph") {
       // 查看当前的样式
       const currentFormat = this._getLineFormat(index);
+
+      if (currentFormat.list && this._isLineEmpty(index)) {
+        const lineEnd = this._findLineEnd(index);
+        return new Delta().retain(lineEnd).retain(1, { list: null });
+      }
       // 处理逻辑：
       // 在当前位置插入一个具有继承属性的回车
       // 清除最后的回车当中的样式
@@ -209,6 +215,46 @@ export class Editor {
     }
 
     return this.doc.length();
+  }
+
+  /**
+   * 辅助方法：
+   * 找到当前行的开始位置
+   * @param index
+   */
+  private _findLineStart(index: number): number {
+    let currentPos = 0;
+    let lastNewLinePos = -1;
+
+    for (const op of this.doc.ops) {
+      const len = typeof op.insert === "string" ? op.insert.length : 1;
+
+      if (currentPos < index) {
+        if (typeof op.insert === "string") {
+          let relativeIndex = op.insert.indexOf("\n");
+          while (relativeIndex !== -1 && currentPos + relativeIndex < index) {
+            lastNewLinePos = currentPos + relativeIndex;
+            relativeIndex = op.insert.indexOf("\n", relativeIndex + 1);
+          }
+        }
+      } else {
+        break;
+      }
+
+      currentPos += len;
+    }
+    return lastNewLinePos + 1;
+  }
+
+  /**
+   * 判断是不是空行
+   * @param index
+   * @returns
+   */
+  private _isLineEmpty(index: number): boolean {
+    const start = this._findLineStart(index);
+    const end = this._findLineEnd(index);
+    return start === end;
   }
 
   /**

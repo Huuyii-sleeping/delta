@@ -1,4 +1,5 @@
 import Delta from "../Delta/Delta";
+import Op from "../Delta/Op";
 
 export class Renderer {
   static formats: Record<string, any> = {
@@ -10,42 +11,104 @@ export class Renderer {
 
   render(delta: Delta): string {
     let html = "";
-    let inlineBuffer: string[] = [];
+    const lines = this._splitDeltaIntoLines(delta);
 
-    for (const op of delta.ops) {
-      if (typeof op.insert !== "string") {
-        continue;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const prevLine = lines[i - 1];
+      const nextLine = lines[i + 1];
+
+      const blockAttrs = line.attrs || {};
+
+      const contentHtml = this._renderInlineOps(line.ops) || "<br>";
+
+      if (blockAttrs.list) {
+        const listType = blockAttrs.list === "ordered" ? "ol" : "ul";
+
+        // 检查上一行，决定是否需要开启一个新的列表标签
+        // 检查上一行有没有list属性，或者list属性和我的是否不一样
+        const prevLineType =
+          prevLine?.attrs?.list === "ordered"
+            ? "ol"
+            : prevLine?.attrs?.list
+            ? "ul"
+            : null;
+        if (listType !== prevLineType) {
+          html += `<${listType}>`;
+        }
+
+        html += `<li>${contentHtml}</li>`;
+
+        const nextLineType =
+          nextLine?.attrs?.list === "ordered"
+            ? "ol"
+            : nextLine?.attrs?.list
+            ? "ul"
+            : null;
+        if (listType !== nextLineType) {
+          html += `</${listType}>`;
+        }
+      } else if (blockAttrs.header) {
+        const tagName = `h${blockAttrs.header}`;
+        html += `<${tagName}>${contentHtml}</${tagName}>`;
+      } else {
+        html += `<div>${contentHtml}</div>`;
       }
+    }
+    return html;
+  }
 
-      // Quill Delta 是凭借\n作为区分的
-      // 我们就需要检测文本里面是不是具有\n
-      const text = op.insert;
-      if (text.includes("\n")) {
-        const parts = text.split("\n");
-        // 先处理这部分文本的行内样式，放入缓冲区域
+  /**
+   * 批量渲染Ops数组
+   * _renderInline只能渲染单个text，这里一个循环就能处理一行内的所有的Ops
+   * @param ops
+   * @returns
+   */
+  private _renderInlineOps(ops: Op[]): string {
+    return ops
+      .map((op) => {
+        if (typeof op.insert === "string") {
+          return this._renderInline(op.insert, op.attributes);
+        }
+        return "";
+      })
+      .join("");
+  }
+
+  /**
+   * 将Delta进行拆分
+   * 返回结构 [{ ops: [...行内Op], attrs: { 换行符属性 }}，...]
+   * @param doc
+   * @returns
+   */
+  private _splitDeltaIntoLines(doc: Delta) {
+    const lines: { ops: Op[]; attrs: any }[] = [];
+    let currentOps: Op[] = [];
+
+    for (const op of doc.ops) {
+      if (typeof op.insert === "string") {
+        const parts = op.insert.split("\n");
         parts.forEach((part, index) => {
-          if (part) {
-            inlineBuffer.push(this._renderInline(part, op.attributes));
-          }
+          if (part)
+            currentOps.push({ insert: part, attributes: op.attributes });
 
-          // 如果这个不是最后一部分，说明碰见了\n 结行
-          // part.length - 1就是\n的数量
           if (index < parts.length - 1) {
-            const lineContent = inlineBuffer.join("") || "<br>";
-            const lineHtml = this._renderBlock(lineContent, op.attributes);
-            html += lineHtml;
-            inlineBuffer = [];
+            lines.push({
+              ops: currentOps,
+              attrs: op.attributes || {},
+            });
+            currentOps = [];
           }
         });
       } else {
-        inlineBuffer.push(this._renderInline(text, op.attributes));
+        currentOps.push(op);
       }
     }
 
-    if (inlineBuffer.length > 0) {
-      html += this._renderBlock(inlineBuffer.join(""), {});
+    if (currentOps.length > 0) {
+      lines.push({ ops: currentOps, attrs: {} });
     }
-    return html;
+    return lines;
   }
 
   /**
