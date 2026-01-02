@@ -39,6 +39,14 @@ export class Parser {
       const tagName = element.tagName.toLowerCase();
       const newAttributes = { ...attributes };
 
+      if (tagName === "img") {
+        const src = element.getAttribute("src");
+        if (src) {
+          delta.insert({ image: src } as any, attributes);
+        }
+        return;
+      }
+
       if (
         tagName === "strong" ||
         tagName === "b" ||

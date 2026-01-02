@@ -87,14 +87,26 @@ export class SelectionManager {
         for (let j = 0; j < listItems.length; j++) {
           const li = listItems[j];
           if (li === targetLine) return index;
-          index += (li.textContent || "").length + 1;
+          index += this._getNodeLength(li) + 1;
         }
       } else {
         if (node === targetLine) return index;
-        index += (node.textContent || "").length + 1;
+        index += this._getNodeLength(node) + 1;
       }
     }
     return index;
+  }
+
+  private _getNodeLength(element: Element): number {
+    let len = 0;
+    element.childNodes.forEach((child) => {
+      if (child.nodeName === "IMG") {
+        len += 1;
+      } else {
+        len += (child.textContent || "").length;
+      }
+    });
+    return len;
   }
 
   /**
@@ -105,15 +117,27 @@ export class SelectionManager {
    * @returns
    */
   private _getOffsetInLine(line: Element, node: Node, offset: number): number {
+    if (node === line && offset === 0) return 0;
     const range = document.createRange();
-
-    if (node === line) {
-      return 0;
-    }
-
     range.setStart(line, 0);
     range.setEnd(node, offset);
-    return range.toString().length;
+
+    const preCaretFragment = range.cloneContents();
+    return this._calculateFragmentLength(preCaretFragment);
+  }
+
+  private _calculateFragmentLength(root: Node): number {
+    let len = 0;
+    root.childNodes.forEach((child) => {
+      if (child.nodeName === "IMG") {
+        len += 1;
+      } else if (child.nodeType === Node.TEXT_NODE) {
+        len += (child.textContent || "").length;
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        len += this._calculateFragmentLength(child);
+      }
+    });
+    return len;
   }
 
   /**
@@ -166,8 +190,7 @@ export class SelectionManager {
         const listItems = node.children;
         for (let j = 0; j < listItems.length; j++) {
           const li = listItems[j];
-          const lineText = li.textContent || "";
-          const lineLength = lineText.length + 1;
+          const lineLength = this._getNodeLength(li) + 1;
 
           if (currentLength + lineLength > targetIndex) {
             return this._findInLine(li, targetIndex - currentLength);
@@ -175,8 +198,7 @@ export class SelectionManager {
           currentLength += lineLength;
         }
       } else {
-        const lineText = node.textContent || "";
-        const lineLength = lineText.length + 1;
+        const lineLength = this._getNodeLength(node) + 1;
         if (currentLength + lineLength > targetIndex) {
           return this._findInLine(node, targetIndex - currentLength);
         }
@@ -196,43 +218,57 @@ export class SelectionManager {
     element: Element,
     localIndex: number
   ): { node: Node; offset: number } | null {
-    if (element.textContent === "") return { node: element, offset: 0 };
-
     if (localIndex === 0) {
-      const firstText = this._findFirstTextNode(element);
-      return firstText
-        ? { node: firstText, offset: 0 }
-        : { node: element, offset: 0 };
+      return { node: element, offset: 0 };
     }
 
-    const walker = document.createTreeWalker(
-      element,
-      NodeFilter.SHOW_TEXT,
-      null
-    );
+    let current = 0;
+    for (let i = 0; i < element.childNodes.length; i++) {
+      const child = element.childNodes[i];
 
+      if (child.nodeName === "IMG") {
+        if (current + 1 >= localIndex) {
+          return { node: element, offset: i + 1 };
+        }
+        current += 1;
+      } else {
+        const textLen = child.textContent?.length || 0;
+        if (current + textLen >= localIndex) {
+          return this._findInTextNode(child, localIndex - current);
+        }
+        current += textLen;
+      }
+    }
+
+    return { node: element, offset: element.childNodes.length };
+  }
+
+  /**
+   * 进入节点内部找到纯文本TextNode节点
+   * @param root
+   * @param offset
+   * @returns
+   */
+  private _findInTextNode(
+    root: Node,
+    offset: number
+  ): { node: Node; offset: number } {
+    if (root.nodeType === Node.TEXT_NODE) {
+      return { node: root, offset: offset };
+    }
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
     let node = walker.nextNode();
     let current = 0;
     while (node) {
       const len = node.textContent?.length || 0;
-      if (current + len >= localIndex) {
-        return { node: node, offset: localIndex - current };
+      if (current + len >= offset) {
+        return { node: node, offset: offset - current };
       }
-
       current += len;
       node = walker.nextNode();
     }
 
-    return { node: element, offset: 0 };
-  }
-
-  /**
-   * 找到一行当中的第一个文本节点
-   * @param root
-   * @returns
-   */
-  private _findFirstTextNode(root: Node): Node | null {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-    return walker.nextNode();
+    return { node: root, offset: 0 };
   }
 }

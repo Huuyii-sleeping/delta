@@ -1,7 +1,7 @@
 interface Op {
   // 核心数据 三选一
   // 插入对象或者文字
-  insert?: string;
+  insert?: string | Record<string, any>;
   // 删除N个字符
   delete?: number;
   // 跳过N个字符（保存不会做出改变）

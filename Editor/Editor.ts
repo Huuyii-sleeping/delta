@@ -191,6 +191,21 @@ export class Editor {
   }
 
   /**
+   * 插入图片当中的方法
+   * @param url 
+   */
+  insertImage(url: string) {
+    const range = this.selection.getSelection();
+    const index = range ? range.index : 0;
+
+    const change = new Delta().retain(index).insert({ image: url } as any);
+    this.history.record(change, this.doc, range);
+    this.doc = this.doc.compose(change);
+    this.updateView();
+    this.selection.setSelection(index + 1);
+  }
+
+  /**
    * 辅助方法：
    * 找到当前位置最后的第一个换行符的索引
    * 用于定位当前行的结尾，以便于应用块级样式

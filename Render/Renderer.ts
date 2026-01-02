@@ -69,10 +69,22 @@ export class Renderer {
       .map((op) => {
         if (typeof op.insert === "string") {
           return this._renderInline(op.insert, op.attributes);
+        } else if (typeof op.insert === "object" && op.insert.image) {
+          return this._renderImage(op.insert.image, op.attributes);
         }
         return "";
       })
       .join("");
+  }
+
+  private _renderImage(src: string, attributes?: Record<string, any>): string {
+    let style = "";
+    if (attributes) {
+      if (attributes.width) style += `width:${attributes.width}px;`;
+      if (attributes.height) style += `height:${attributes.height}px`;
+    }
+
+    return `<img src="${src}" style="${style}" />`;
   }
 
   /**

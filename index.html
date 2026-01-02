@@ -67,7 +67,10 @@
       <button
         onmousedown="event.preventDefault(); editor.formatLine('list', 'null')"
       >
-        No Lis
+        No List
+      </button>
+      <button onmousedown="event.preventDefault(); insertImageBtn()">
+        插入图片
       </button>
     </div>
     <div id="editor"></div>
@@ -77,6 +80,14 @@
       const editor = new Editor("#editor");
 
       window.editor = editor;
+      window.insertImageBtn = insertImageBtn;
+
+      function insertImageBtn() {
+        const url = prompt("请输入图片URL", "https://via.placeholder.com/150");
+        if (url) {
+          window.editor.insertImage(url);
+        }
+      }
     </script>
   </body>
 </html>
