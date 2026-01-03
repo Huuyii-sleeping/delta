@@ -12,6 +12,8 @@ import "prismjs/components/prism-typescript";
 import "prismjs/components/prism-css";
 import "prismjs/components/prism-markup";
 import { ImageResizer } from "../ImageResizer/ImageResizer";
+import { SlashMenu } from "../SlashMenu/SlashMenu";
+import { nextTick } from "node:process";
 
 interface MarkdownRule {
   match: RegExp;
@@ -35,6 +37,8 @@ export class Editor extends EventEmitter {
   floatingMenu: FloatingMenu;
   // 图片缩放工具
   imageResizer: ImageResizer;
+  // / 展示菜单功能
+  slashMenu: SlashMenu;
 
   private markdownRules: MarkdownRule[] = [
     { match: /^#$/, format: "header", value: 1, length: 1 }, // # -> H1
@@ -63,6 +67,7 @@ export class Editor extends EventEmitter {
     this.clipboard = new Clipboard(this);
     this.floatingMenu = new FloatingMenu(this);
     this.imageResizer = new ImageResizer(this);
+    this.slashMenu = new SlashMenu(this);
 
     this.updateView();
     this.bindEvents();
@@ -83,6 +88,30 @@ export class Editor extends EventEmitter {
 
   // 事件绑定
   bindEvents() {
+    // 监听 /
+    this.dom.addEventListener("input", (e: Event) => {
+      const inputEvent = e as InputEvent;
+      console.log(inputEvent.data);
+      if (inputEvent.data === "/") {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+
+          // 呼出菜单
+          // 注意：rect.left bottom 是基于视口进行操作的
+          this.slashMenu.show(
+            rect.left + window.scrollX,
+            rect.bottom + window.scrollY
+          );
+        }
+      } else {
+        if (this.slashMenu.isVisiable()) {
+          this.slashMenu.hide();
+        }
+      }
+    });
+
     // 监听拖拽上传
     this.dom.addEventListener("drag", (e: DragEvent) => {
       e.preventDefault();
@@ -186,6 +215,28 @@ export class Editor extends EventEmitter {
         }
       }
 
+      // 监听 / 调用菜单
+      if (e.inputType === "insertText" && e.data === "/") {
+        // 使用setTimeout是因为 同步调用的时候，DOM可能还没有准备好，导致焦点聚焦到左上角
+        // 所以我们可以等到DOM加载完毕之后再次操作
+        setTimeout(() => {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            if (rect.top === 0 && rect.left === 0) return;
+            this.slashMenu.show(
+              rect.left + window.scrollX,
+              rect.top + window.scrollY
+            );
+          }
+        }, 0);
+      } else {
+        if (this.slashMenu && this.slashMenu.isVisiable()) {
+          this.slashMenu.hide();
+        }
+      }
+
       e.preventDefault(); // 直接阻止默认行为，不允许直接修改DOM元素
 
       // 自己计算出Delta的变更
@@ -232,6 +283,13 @@ export class Editor extends EventEmitter {
         this.emit("selection-change", range);
       }, 0);
     });
+  }
+
+  deleteText(index: number, length: number) {
+    const change = new Delta().retain(index).delete(length);
+    this.doc = this.doc.compose(change);
+    this.updateView();
+    this.selection.setSelection(index);
   }
 
   submitChange(change: Delta) {
@@ -287,7 +345,7 @@ export class Editor extends EventEmitter {
         len += (child.textContent || "").length;
       }
     });
-    return len
+    return len;
   }
 
   getText(): string {
