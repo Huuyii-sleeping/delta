@@ -2,9 +2,11 @@ import Delta from "../Delta/Delta";
 import { HistoryManager } from "../History/History";
 import { Renderer } from "../Render/Renderer";
 import { SelectionManager } from "../Selection/Selection";
-import { Clipboard } from "../Module/Clipboard";
+import { Clipboard } from "../Clipboard/Clipboard";
+import Op from "../Delta/Op";
+import { EventEmitter } from "../EventEmitter/EventEmitter";
 
-export class Editor {
+export class Editor extends EventEmitter {
   dom: HTMLElement;
   doc: Delta;
   renderer: Renderer;
@@ -13,6 +15,7 @@ export class Editor {
   clipboard: Clipboard;
 
   constructor(selector: string) {
+    super();
     this.dom = document.querySelector(selector) as HTMLElement;
     if (!this.dom) throw new Error(`找不到元素, ${selector}`);
 
@@ -55,6 +58,7 @@ export class Editor {
         this.history.record(change, this.doc, range);
         this.doc = this.doc.compose(change);
         this.updateView();
+        this.emit("text-change", this.doc);
 
         // 调用setSelection恢复光标的位置
         let newIndex = currentIndex;
@@ -66,6 +70,7 @@ export class Editor {
           if (diff > 0) newIndex += diff;
         }
 
+        this.emit("selection-change", range);
         this.selection.setSelection(newIndex);
         console.log("Current Model:", JSON.stringify(this.doc.ops));
       }
@@ -87,6 +92,13 @@ export class Editor {
           this.history.redo();
         }
       }
+    });
+
+    document.addEventListener("selectionchange", () => {
+      setTimeout(() => {
+        const range = this.selection.getSelection();
+        this.emit("selection-change", range);
+      }, 0);
     });
   }
 
@@ -191,8 +203,39 @@ export class Editor {
   }
 
   /**
+   * 获取样式，用来给对应的按钮添加样式
+   * @returns
+   */
+  getFormat(): Record<string, any> {
+    const range = this.selection.getSelection();
+    if (!range) return {};
+
+    const formats: Record<string, any> = {};
+
+    // 如果具有选区，通常看开头的格式，或者计算所有字符的交集
+    // 简化处理：选取开始位置的属性
+    // 注意：如果text-change刚刚发生，doc已经是最新的了
+    let currentPos = 0;
+    for (const op of this.doc.ops) {
+      const len = typeof op.insert === "string" ? op.insert.length : 1;
+      if (currentPos + len > range.index) {
+        if (op.attributes) {
+          Object.assign(formats, op.attributes);
+        }
+        break;
+      }
+      currentPos += len;
+    }
+
+    //还需要检查当前行的块级样式
+    const lineFormat = this._getLineFormat(range.index);
+    Object.assign(formats, lineFormat);
+    return formats;
+  }
+
+  /**
    * 插入图片当中的方法
-   * @param url 
+   * @param url
    */
   insertImage(url: string) {
     const range = this.selection.getSelection();
@@ -297,5 +340,47 @@ export class Editor {
     }
 
     return {};
+  }
+
+  /**
+   * 导出JSON数据
+   * @returns
+   */
+  getJSON(): string {
+    return JSON.stringify(this.doc.ops);
+  }
+
+  /**
+   * 导入数据(用来回显)
+   * @param content JSON字符或者Ops对象数组
+   */
+  setContents(content: string | Op[]) {
+    let ops;
+    try {
+      if (typeof content === "string") {
+        ops = JSON.parse(content);
+      } else {
+        ops = content;
+      }
+
+      this.doc = new Delta(ops);
+      if (this.doc.length() > 0) {
+        const lastOp = this.doc.ops[this.doc.ops.length - 1];
+        if (
+          typeof lastOp.insert === "string" &&
+          !lastOp.insert.endsWith("\n")
+        ) {
+          this.doc.insert("\n");
+        } else {
+          this.doc.insert("\n");
+        }
+      }
+
+      this.updateView();
+      this.history.undoStack = [];
+      this.history.redoStack = [];
+    } catch (error) {
+      console.error("加载内容失败", error);
+    }
   }
 }

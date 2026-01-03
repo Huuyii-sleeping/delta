@@ -18,7 +18,7 @@
   </head>
   <body>
     <div class="toolbar" style="margin-bottom: 10px">
-      <button onmousedown="event.preventDefault(); editor.format('bold', true)">
+      <button id="btn-bold" onmousedown="event.preventDefault(); editor.format('bold', true)">
         Bold
       </button>
       <button
@@ -72,6 +72,8 @@
       <button onmousedown="event.preventDefault(); insertImageBtn()">
         插入图片
       </button>
+      <button onclick="save()">保存到控制台</button>
+      <button onclick="load()">加载示例数据</button>
     </div>
     <div id="editor"></div>
     <script type="module">
@@ -81,12 +83,45 @@
 
       window.editor = editor;
       window.insertImageBtn = insertImageBtn;
+      window.save = save;
+      window.load = load;
+      window.editor.on("selection-change", (range) => {
+        if (!range) return;
+        const formats = window.editor.getFormat();
+        console.log("当前格式:", formats);
+
+        const boldBtn = document.getElementById("btn-bold");
+        if (formats.bold) {
+          boldBtn.style.backgroundColor = "#ccc";
+        } else {
+          boldBtn.style.backgroundColor = "";
+        }
+      });
 
       function insertImageBtn() {
         const url = prompt("请输入图片URL", "https://via.placeholder.com/150");
         if (url) {
           window.editor.insertImage(url);
         }
+      }
+
+      function save() {
+        const json = window.editor.getJSON();
+        console.log("Save JSON:", json);
+      }
+
+      function load() {
+        const data = [
+          { insert: "Hello " },
+          { insert: "World", attributes: { bold: true } },
+          { insert: "\n", attributes: { header: 1 } },
+          { insert: "This is a list:\n" },
+          { insert: "Item 1" },
+          { insert: "\n", attributes: { list: "bullet" } },
+          { insert: "Item 2" },
+          { insert: "\n", attributes: { list: "bullet" } },
+        ];
+        window.editor.setContents(data);
       }
     </script>
   </body>

@@ -13,5 +13,5 @@
     "esm": false,
     "experimentalSpecifierResolution": "node"
   },
-  "include": ["**/*.ts"] // 关键：** 表示递归所有子目录，*.ts 匹配ts文件
+  "include": ["**/*.ts", "EventEmitter"] // 关键：** 表示递归所有子目录，*.ts 匹配ts文件
 }

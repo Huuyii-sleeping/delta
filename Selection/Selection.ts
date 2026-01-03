@@ -167,6 +167,7 @@ export class SelectionManager {
 
       selection?.removeAllRanges(); // 清除旧光标
       selection?.addRange(range); // 添加新光标
+      
     }
   }
 
