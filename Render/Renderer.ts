@@ -1,5 +1,6 @@
 import Delta from "../Delta/Delta";
 import Op from "../Delta/Op";
+import Prism from "prismjs";
 
 export class Renderer {
   static formats: Record<string, any> = {
@@ -8,7 +9,11 @@ export class Renderer {
     italic: { tag: "em" }, // 斜体 -> <em>
     underline: { tag: "u" }, // 下划线 -> <u>
     strike: { tag: "s" }, // 删除线 -> <s>
-    code: { tag: "code" }, // 行内代码 -> <code>
+    code: {
+      tag: "code",
+      style:
+        "background: #f0f0f0; padding: 2px 4px; border-radius: 4px; font-family: monospace;",
+    }, // 行内代码 -> <code>
 
     // 样式
     link: { tag: "a", attr: "href" },
@@ -23,20 +28,64 @@ export class Renderer {
     let html = "";
     const lines = this._splitDeltaIntoLines(delta);
 
-    for (let i = 0; i < lines.length; i++) {
+    // 使用 while 循环，方便在处理代码块时跳过行
+    let i = 0;
+    while (i < lines.length) {
       const line = lines[i];
-      const prevLine = lines[i - 1];
-      const nextLine = lines[i + 1];
-
       const blockAttrs = line.attrs || {};
 
-      const contentHtml = this._renderInlineOps(line.ops) || "<br>";
+      // === 核心逻辑修改：处理代码块 ===
+      if (blockAttrs["code-block"]) {
+        let codeLines: string[] = [];
+        let j = i;
+
+        while (
+          j < lines.length &&
+          lines[j].attrs &&
+          lines[j].attrs["code-block"]
+        ) {
+          // 获取该行的纯文本内容
+          const rawText = lines[j].ops
+            .map((op) => (typeof op.insert === "string" ? op.insert : ""))
+            .join("");
+          codeLines.push(rawText);
+          j++;
+        }
+
+        // 将多行文本用 \n 拼接，Prism 才能正确处理多行注释
+        const fullCodeText = codeLines.join("\n");
+        const lang = "javascript"; // 后续可从 blockAttrs 获取语言
+        let highlighted = "";
+
+        if (Prism.languages[lang]) {
+          highlighted = Prism.highlight(
+            fullCodeText,
+            Prism.languages[lang],
+            lang
+          );
+        } else {
+          highlighted = this._escapeHtml(fullCodeText);
+        }
+
+        if (fullCodeText.endsWith("\n")) highlighted += "\n";
+
+        html += `<pre class="language-${lang}"><code>${highlighted}</code></pre>`;
+
+        // 注意：因为循环末尾没有 i++ (我们是手动控制)，所以这里赋值即可
+        i = j;
+        continue;
+      }
+
+      // === 处理普通行 ===
+      let contentHtml = this._renderInlineOps(line.ops);
+      if (!contentHtml) contentHtml = "<br>";
 
       if (blockAttrs.list) {
+        // 列表处理逻辑 (保持不变)
         const listType = blockAttrs.list === "ordered" ? "ol" : "ul";
+        const prevLine = lines[i - 1];
+        const nextLine = lines[i + 1];
 
-        // 检查上一行，决定是否需要开启一个新的列表标签
-        // 检查上一行有没有list属性，或者list属性和我的是否不一样
         const prevLineType =
           prevLine?.attrs?.list === "ordered"
             ? "ol"
@@ -61,10 +110,16 @@ export class Renderer {
       } else if (blockAttrs.header) {
         const tagName = `h${blockAttrs.header}`;
         html += `<${tagName}>${contentHtml}</${tagName}>`;
+      } else if (blockAttrs.blockquote) {
+        html += `<blockquote>${contentHtml}</blockquote>`;
       } else {
         html += `<div>${contentHtml}</div>`;
       }
+
+      // 移动到下一行
+      i++;
     }
+
     return html;
   }
 

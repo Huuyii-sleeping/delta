@@ -6,6 +6,11 @@ import { SelectionManager } from "../Selection/Selection";
 import { Clipboard } from "../Clipboard/Clipboard";
 import { EventEmitter } from "../EventEmitter/EventEmitter";
 import { FloatingMenu } from "../FloatingMenu/FloatingMenu";
+import "prismjs/themes/prism.css";
+import "prismjs/components/prism-javascript";
+import "prismjs/components/prism-typescript";
+import "prismjs/components/prism-css";
+import "prismjs/components/prism-markup";
 
 interface MarkdownRule {
   match: RegExp;
@@ -224,6 +229,45 @@ export class Editor extends EventEmitter {
     });
   }
 
+  getText(): string {
+    return this.doc.ops.reduce((text, op) => {
+      if (typeof op.insert === "string") {
+        return text + op.insert;
+      }
+      return text + " ";
+    }, "");
+  }
+
+  search(query: string) {
+    if (!query) {
+      return;
+    }
+    const text = this.getText();
+    const index = text.indexOf(query);
+    if (index !== -1) {
+      this.selection.setSelection(index, query.length);
+      console.log(`Found ${query} at index ${index}`);
+    } else {
+      alert("Not Found");
+    }
+  }
+
+  replace(query: string, replacement: string) {
+    const selection = this.selection.getSelection();
+    const text = this.getText();
+    const index = text.indexOf(query);
+    if (index !== -1) {
+      const change = new Delta()
+        .retain(index)
+        .delete(query.length)
+        .insert(replacement);
+
+      this.doc = this.doc.compose(change);
+      this.history.record(change, this.doc, selection);
+      this.updateView();
+    }
+  }
+
   enable(enabled: boolean = true) {
     this.dom.contentEditable = String(enabled);
     if (enabled) {
@@ -288,7 +332,6 @@ export class Editor extends EventEmitter {
   format(format: string, value: any) {
     // 获取当前选取
     const range = this.selection.getSelection();
-    console.log(range);
     if (!range || range.length === 0) return;
 
     // 只有选中了文本才会处理
@@ -388,6 +431,22 @@ export class Editor extends EventEmitter {
     this.doc = this.doc.compose(change);
     this.updateView();
     this.selection.setSelection(index + 1);
+  }
+
+  insertCodeBlock() {
+    const selection = this.selection.getSelection();
+    if (!selection) return;
+
+    const change = new Delta()
+      .retain(selection.index)
+      .insert("\n")
+      .insert(" ", { "code-block": true })
+      .insert("\n", { "code-block": true })
+      .insert("\n");
+
+    this.doc = this.doc.compose(change);
+    this.updateView();
+    this.selection.setSelection(selection.index + 2);
   }
 
   /**

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-    <link rel="stylesheet" href="./index.css">
+    <link rel="stylesheet" href="./index.css" />
   </head>
   <body>
     <div class="toolbar" style="margin-bottom: 10px">
@@ -70,6 +70,12 @@
       </button>
       <button onmousedown="event.preventDefault(); insertImageBtn()">
         插入图片
+      </button>
+      <button onmousedown="event.preventDefault(); editor.insertCodeBlock()">
+        Insert Code Block
+      </button>
+      <button onmousedown="event.preventDefault(); editor.format('code', true)">
+        Inline Code ``
       </button>
       <button onclick="save()">保存到控制台</button>
       <button onclick="load()">加载示例数据</button>

@@ -141,3 +141,62 @@
 #editor img::selection {
   background: transparent; /* 防止图片变蓝 */
 }
+
+/* --- Prism.js 代码块美化覆盖 --- */
+
+/* 1. 强制去除 code 标签在 pre 内部的默认背景和边框 */
+pre[class*="language-"] > code {
+  /* 关键：让 code 标签继承外层的白色，而不是使用浏览器默认的黑色 */
+  color: inherit !important;
+
+  /* 之前的样式保持不变：去除白色背景 */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  font-family: "Fira Code", monospace;
+  text-shadow: none !important;
+}
+
+/* 2. 美化外层的 pre 容器 (让它看起来像 Mac 风格或 VS Code) */
+pre[class*="language-"] {
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #f8f8f2 !important;
+
+  /* 之前的样式保持不变 */
+  background: #1e1e1e !important;
+  border-radius: 8px;
+  padding: 1.2em !important;
+  overflow: auto;
+}
+
+/* 3. 调整滚动条样式 (Chrome/Safari/Edge) */
+pre[class*="language-"]::-webkit-scrollbar {
+  height: 8px;
+  background-color: transparent;
+}
+pre[class*="language-"]::-webkit-scrollbar-thumb {
+  background-color: #4a4a4a;
+  border-radius: 4px;
+}
+
+/* 普通行内代码样式 (比如你文中插入的 `var x = 1`) */
+code:not([class*="language-"]) {
+  background-color: #f3f4f4; /* 浅灰背景 */
+  color: #e83e8c; /* 骚粉色文字 */
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+/* 强制移除 Prism 所有语法高亮元素的背景色 */
+span.token {
+  background: transparent !important;
+}
+
+/* 专门针对操作符 (+ - = 等) 的双重保险 */
+.token.operator {
+  background: none !important;
+}
