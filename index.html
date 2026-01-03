@@ -88,7 +88,6 @@
       window.editor.on("selection-change", (range) => {
         if (!range) return;
         const formats = window.editor.getFormat();
-        console.log("当前格式:", formats);
 
         const boldBtn = document.getElementById("btn-bold");
         if (formats.bold) {

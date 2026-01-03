@@ -13,6 +13,10 @@ export class Editor extends EventEmitter {
   selection: SelectionManager;
   history: HistoryManager;
   clipboard: Clipboard;
+  // 标记位：标记是否正在进行中文输入
+  isComposing: boolean = false;
+  // 记录：防止因为中文输入法导致光标乱飞的问题，明确插入的具体位置
+  lastSelection: { index: number; length: number } | null = null;
 
   constructor(selector: string) {
     super();
@@ -43,8 +47,39 @@ export class Editor extends EventEmitter {
 
   // 事件绑定
   bindEvents() {
+    // 监听中文输入
+    this.dom.addEventListener("compositionstart", () => {
+      this.isComposing = true;
+      this.lastSelection = this.selection.getSelection();
+      console.log("中文输入开始,锁定光标的位置:", this.lastSelection);
+    });
+
+    this.dom.addEventListener("compositionend", (e: CompositionEvent) => {
+      this.isComposing = false;
+      console.log("中文输入结束,上屏内容:", e.data);
+      if (e.data) {
+        const insertIndex = this.lastSelection ? this.lastSelection.index : 0;
+
+        // 注意：此时浏览器已经修改了DOM，此时getSelection算出来的index可能不准
+        // 通常具有compositionend发生时，光标还在原来的位置（或者被浏览器移动到文字后面）
+        // 稳妥做法：假设光标在输入开始的位置
+        // 或者直接插入，使用updateView进行修正
+        const change = new Delta().retain(insertIndex).insert(e.data);
+        // this._handleDeltaChange(change, currentIndex, e.data.length);
+        this.history.record(change, this.doc, this.lastSelection);
+        this.doc = this.doc.compose(change);
+        this.updateView();
+        const newIndex = insertIndex + e.data.length;
+        this.selection.setSelection(newIndex);
+        this.emit("text-change", this.doc);
+        this.lastSelection = null;
+      }
+    });
+
     // 使用beforeInput拦截输入操作
     this.dom.addEventListener("beforeinput", (e: InputEvent) => {
+      if (this.isComposing) return;
+      if (e.inputType === "insertFromComposition") return;
       e.preventDefault(); // 直接阻止默认行为，不允许直接修改DOM元素
 
       const range = this.selection.getSelection();
@@ -54,13 +89,10 @@ export class Editor extends EventEmitter {
       const change = this.getDeltaFromInput(e, currentIndex);
       if (change) {
         const oldDocLength = this.doc.length();
-        // compose 之前记录旧的文档，因为要对比旧的文档生成历史记录
         this.history.record(change, this.doc, range);
         this.doc = this.doc.compose(change);
         this.updateView();
-        this.emit("text-change", this.doc);
 
-        // 调用setSelection恢复光标的位置
         let newIndex = currentIndex;
         const newDocLength = this.doc.length();
         if (e.inputType === "deleteContentBackward") {
@@ -69,10 +101,7 @@ export class Editor extends EventEmitter {
           const diff = newDocLength - oldDocLength;
           if (diff > 0) newIndex += diff;
         }
-
-        this.emit("selection-change", range);
         this.selection.setSelection(newIndex);
-        console.log("Current Model:", JSON.stringify(this.doc.ops));
       }
     });
 
