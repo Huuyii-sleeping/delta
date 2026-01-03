@@ -5,6 +5,7 @@ import { Renderer } from "../Render/Renderer";
 import { SelectionManager } from "../Selection/Selection";
 import { Clipboard } from "../Clipboard/Clipboard";
 import { EventEmitter } from "../EventEmitter/EventEmitter";
+import { FloatingMenu } from "../FloatingMenu/FloatingMenu";
 
 interface MarkdownRule {
   match: RegExp;
@@ -24,12 +25,17 @@ export class Editor extends EventEmitter {
   isComposing: boolean = false;
   // 记录：防止因为中文输入法导致光标乱飞的问题，明确插入的具体位置
   lastSelection: { index: number; length: number } | null = null;
+  floatingMenu: FloatingMenu;
 
   private markdownRules: MarkdownRule[] = [
     { match: /^#$/, format: "header", value: 1, length: 1 }, // # -> H1
     { match: /^##$/, format: "header", value: 2, length: 2 }, // ## -> H2
+    { match: /^###$/, format: "header", value: 3, length: 3 }, // ### -> H3
     { match: /^(\*|-)$/, format: "list", value: "bullet", length: 1 }, // * 或 - -> 无序列表
     { match: /^1\.$/, format: "list", value: "ordered", length: 2 }, // 1. -> 有序列表
+    { match: /^>$/, format: "blockquote", value: true, length: 1 }, // > -> 引用 (如果你支持的话)
+    { match: /^>$/, format: "blockquote", value: true, length: 1 },
+    { match: /^```$/, format: "code-block", value: true, length: 3 },
   ];
 
   constructor(selector: string) {
@@ -46,6 +52,7 @@ export class Editor extends EventEmitter {
     this.selection = new SelectionManager(this.dom);
     this.history = new HistoryManager(this);
     this.clipboard = new Clipboard(this);
+    this.floatingMenu = new FloatingMenu(this);
 
     this.updateView();
     this.bindEvents();

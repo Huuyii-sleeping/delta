@@ -3,10 +3,20 @@ import Op from "../Delta/Op";
 
 export class Renderer {
   static formats: Record<string, any> = {
+    // 基础
     bold: { tag: "strong" },
-    italic: { tag: "em" },
+    italic: { tag: "em" }, // 斜体 -> <em>
+    underline: { tag: "u" }, // 下划线 -> <u>
+    strike: { tag: "s" }, // 删除线 -> <s>
+    code: { tag: "code" }, // 行内代码 -> <code>
+
+    // 样式
     link: { tag: "a", attr: "href" },
-    color: { style: "color" },
+    color: { style: "color" }, // 字体颜色
+    background: { style: "background-color" }, // 背景色
+
+    // 字体 (如果以后做字号)
+    size: { style: "font-size" },
   };
 
   render(delta: Delta): string {
@@ -168,9 +178,21 @@ export class Renderer {
     attributes?: Record<string, any>
   ): string {
     let tagName = "div";
-    if (attributes && attributes.header) {
-      tagName = `h${attributes.header}`;
+
+    if (attributes) {
+      if (attributes.header) {
+        tagName = `h${attributes.header}`;
+      }
+      // [新增] 引用块
+      else if (attributes.blockquote) {
+        tagName = "blockquote";
+      }
+      // [新增] 代码块 (通常需要配合 pre 标签，这里简化处理)
+      else if (attributes["code-block"]) {
+        tagName = "pre";
+      }
     }
+
     return `<${tagName}>${content}</${tagName}>`;
   }
 

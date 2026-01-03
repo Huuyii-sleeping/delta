@@ -4,43 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-    <style>
-      #editor {
-        position: relative;
-      }
-      #editor ul,
-      #editor ol {
-        padding-left: 24px;
-        margin: 8px 0;
-      }
-
-      #editor li {
-        margin-bottom: 4px;
-      }
-
-      #editor a {
-        color: #007bff;
-        text-decoration: underline;
-        cursor: text;
-      }
-
-      #editor a:hover {
-        cursor: pointer;
-      }
-
-      #editor.is-empty::before {
-        content: attr(data-placeholder);
-        color: #aaa;
-        position: absolute;
-        pointer-events: none; /* 让鼠标穿透，不影响点击编辑 */
-        font-style: italic;
-      }
-
-      #editor.read-only {
-        background-color: #f9f9f9;
-        outline: none;
-      }
-    </style>
+    <link rel="stylesheet" href="./index.css">
   </head>
   <body>
     <div class="toolbar" style="margin-bottom: 10px">
