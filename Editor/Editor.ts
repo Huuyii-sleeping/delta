@@ -254,7 +254,21 @@ export class Editor extends EventEmitter {
 
   replace(query: string, replacement: string) {
     const selection = this.selection.getSelection();
+    if (selection?.length === 0) {
+      alert("请选中要进行替换的区域");
+      return;
+    }
     const text = this.getText();
+    if (query.length === 0) {
+      const change = new Delta()
+        .retain(selection!.index)
+        .delete(selection!.length)
+        .insert(replacement);
+      this.doc = this.doc.compose(change);
+      this.history.record(change, this.doc, selection);
+      this.updateView();
+      return;
+    }
     const index = text.indexOf(query);
     if (index !== -1) {
       const change = new Delta()

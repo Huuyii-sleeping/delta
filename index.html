@@ -77,6 +77,8 @@
       <button onmousedown="event.preventDefault(); editor.format('code', true)">
         Inline Code ``
       </button>
+      <button onmousedown="event.preventDefault(); search()">搜索</button>
+      <button onmousedown="event.preventDefault(); replace()">替换</button>
       <button onclick="save()">保存到控制台</button>
       <button onclick="load()">加载示例数据</button>
       <button onclick="window.editor.enable()">启用编辑</button>
@@ -93,6 +95,8 @@
       window.save = save;
       window.load = load;
       window.addLink = addLink;
+      window.search = search;
+      window.replace = replace
       window.editor.on("selection-change", (range) => {
         if (!range) return;
         const formats = window.editor.getFormat();
@@ -104,6 +108,18 @@
           boldBtn.style.backgroundColor = "";
         }
       });
+
+      function replace() {
+        const replaceContent = prompt("请输入替换内容")
+        if(!replaceContent) return 
+        editor.replace("", replaceContent)
+      }
+
+      function search() {
+        const searchContent = prompt("请输入搜索内容");
+        if(!searchContent) return 
+        editor.search(searchContent);
+      }
 
       function addLink() {
         const url = prompt("请输入链接地址", "https://");
