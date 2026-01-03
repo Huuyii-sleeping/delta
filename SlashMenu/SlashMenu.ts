@@ -85,9 +85,7 @@ export class SlashMenu {
         label: "分割线",
         hint: "---",
         action: () => {
-          // 如果你有实现分割线的话
-          // this.editor.insertDivider();
-          alert("分割线功能暂未实现");
+          this.editor.insertDivider();
         },
       },
     ];

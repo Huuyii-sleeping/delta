@@ -134,8 +134,11 @@ export class Renderer {
       .map((op) => {
         if (typeof op.insert === "string") {
           return this._renderInline(op.insert, op.attributes);
-        } else if (typeof op.insert === "object" && op.insert.image) {
-          return this._renderImage(op.insert.image, op.attributes);
+        } else if (typeof op.insert === "object") {
+          if (op.insert.image)
+            return this._renderImage(op.insert.image, op.attributes);
+          else if (op.insert.divider)
+            return '<hr class="editor-divider" contenteditable="false" />';
         }
         return "";
       })

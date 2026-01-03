@@ -47,6 +47,11 @@ export class Parser {
         return;
       }
 
+      if (tagName === "hr") {
+        delta.insert({ divider: true } as any, attributes);
+        return;
+      }
+
       if (
         tagName === "strong" ||
         tagName === "b" ||

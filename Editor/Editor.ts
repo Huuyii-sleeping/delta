@@ -582,6 +582,23 @@ export class Editor extends EventEmitter {
     this.selection.setSelection(selection.index + 2);
   }
 
+  insertDivider() {
+    const range = this.selection.getSelection();
+    const index = range ? range.index : 0;
+
+    const change = new Delta()
+      .retain(index)
+      .insert("\n")
+      .insert({ divider: true } as any)
+      .insert("\n");
+
+    this.history.record(change, this.doc, range);
+    this.doc = this.doc.compose(change);
+    this.updateView();
+
+    this.selection.setSelection(index + 2);
+  }
+
   /**
    * 获取当前行，光标之前的文本（检测md文件使用）
    * @param index 光标位置

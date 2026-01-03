@@ -100,7 +100,7 @@ export class SelectionManager {
   private _getNodeLength(element: Element): number {
     let len = 0;
     element.childNodes.forEach((child) => {
-      if (child.nodeName === "IMG") {
+      if (child.nodeName === "IMG" || child.nodeName === "HR") {
         len += 1;
       } else {
         len += (child.textContent || "").length;
@@ -129,7 +129,7 @@ export class SelectionManager {
   private _calculateFragmentLength(root: Node): number {
     let len = 0;
     root.childNodes.forEach((child) => {
-      if (child.nodeName === "IMG") {
+      if (child.nodeName === "IMG" || child.nodeName === "HR") {
         len += 1;
       } else if (child.nodeType === Node.TEXT_NODE) {
         len += (child.textContent || "").length;
@@ -167,7 +167,6 @@ export class SelectionManager {
 
       selection?.removeAllRanges(); // 清除旧光标
       selection?.addRange(range); // 添加新光标
-      
     }
   }
 
@@ -227,7 +226,7 @@ export class SelectionManager {
     for (let i = 0; i < element.childNodes.length; i++) {
       const child = element.childNodes[i];
 
-      if (child.nodeName === "IMG") {
+      if (child.nodeName === "IMG" || child.nodeName === "HR") {
         if (current + 1 >= localIndex) {
           return { node: element, offset: i + 1 };
         }
