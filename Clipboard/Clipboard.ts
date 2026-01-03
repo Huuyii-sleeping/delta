@@ -40,7 +40,7 @@ export class Clipboard {
         delta = this.parser.parse(html);
       } else {
         console.log("Paser Text", text);
-        delta = new Delta().insert(text.replace(/\r/g, ""));
+        delta = new Delta().insert(text);
       }
       this.insertDelta(delta);
     });
@@ -67,17 +67,10 @@ export class Clipboard {
   insertDelta(pasteDelta: Delta) {
     const selection = this.editor.selection.getSelection();
     if (!selection) return;
-    // const change = new Delta().retain(selection.index).concat(pasteDelta);
     const changeOps = new Delta()
       .retain(selection.index)
       .ops.concat(pasteDelta.ops);
     const change = new Delta(changeOps);
-
-    this.editor.history.record(change, this.editor.doc, selection);
-    this.editor.doc = this.editor.doc.compose(change);
-    this.editor.updateView();
-
-    const newIndex = selection.index + pasteDelta.length();
-    this.editor.selection.setSelection(newIndex);
+    this.editor.submitChange(change);
   }
 }
