@@ -55,7 +55,7 @@
   left: 50%;
   transform: translateX(-50%);
   /* 没有设置border就能直接渲染成三角形 */
-  border-left: 5px solid transparent; 
+  border-left: 5px solid transparent;
   border-right: 5px solid transparent;
 
   /* 默认：位于底部，利用 border-top 绘制向下箭头 */
@@ -123,4 +123,21 @@
 /* 给不同类型的按钮分组加一点间距 (可选) */
 #editor-floating-menu button[data-format="color"] {
   font-size: 12px; /* emoji 稍微调整大小 */
+}
+
+#editor img {
+  max-width: 100%; /* 不超过编辑器宽度 */
+  height: auto; /* 保持比例 */
+  border-radius: 4px; /* 圆角好看点 */
+  cursor: default;
+  display: inline-block; /* 或者 block，看你喜好 */
+  margin: 4px 0;
+
+  /* 选中态 (可选，配合 selection) */
+  transition: box-shadow 0.2s;
+}
+
+/* 当图片被选中时(浏览器原生行为)，加个蓝框 */
+#editor img::selection {
+  background: transparent; /* 防止图片变蓝 */
 }

@@ -73,6 +73,27 @@ export class Editor extends EventEmitter {
 
   // 事件绑定
   bindEvents() {
+    // 监听拖拽上传
+    this.dom.addEventListener("drag", (e: DragEvent) => {
+      e.preventDefault();
+
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        const file = files[0];
+        if (file.type.startsWith("image/")) {
+          // 体验优化：
+          // 我们希望放到鼠标移动的位置，而不是当前光标的位置
+          this._updateSelectionByMouse(e.clientX, e.clientY);
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const base64 = event?.target?.result as string;
+            if (base64) this.insertImage(base64);
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    });
+
     // 监听点击事件，处理超链接的跳转
     this.dom.addEventListener("click", (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -114,10 +135,13 @@ export class Editor extends EventEmitter {
         const newIndex = insertIndex + e.data.length;
         this.selection.setSelection(newIndex);
         this.emit("text-change", this.doc);
-        this.lastSelection = null;
       } else {
         this.updateView();
+        if (this.lastSelection) {
+          this.selection.setSelection(this.lastSelection.index);
+        }
       }
+      this.lastSelection = null;
     });
 
     // 使用beforeInput拦截输入操作
@@ -379,6 +403,30 @@ export class Editor extends EventEmitter {
       if (typeof op.insert === "string") return text + op.insert;
       return text;
     }, "");
+  }
+
+  private _updateSelectionByMouse(x: number, y: number) {
+    let range: Range | null = null;
+    // 兼容性处理
+    if (document.caretRangeFromPoint) {
+      // Chrome Safari Edge
+      range = document.caretRangeFromPoint(x, y);
+    } else if (document.caretPositionFromPoint) {
+      // Firefox
+      const pos = document.caretPositionFromPoint(x, y);
+      if (pos) {
+        range = document.createRange();
+        range.setStart(pos.offsetNode, pos.offset);
+        range.collapse(true);
+      }
+    }
+
+    if (range && this.dom.contains(range.startContainer)) {
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      // 同步更新最新的状态
+    }
   }
 
   /**

@@ -20,6 +20,17 @@ export class Clipboard {
 
       if (!e.clipboardData) return;
 
+      // 优先检查是否包含文件 比如粘贴图片文件
+      // 粘贴和拖拽拿到的是File对象（二进制）
+      // 解决方案：我们生成一个中间层，将File转成Base64字符串，然后再生成Delta插入
+      if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+        const file = e.clipboardData.files[0];
+        if (file.type.startsWith("image/")) {
+          this._handleImageFile(file);
+          return;
+        }
+      }
+
       const html = e.clipboardData.getData("text/html");
       const text = e.clipboardData.getData("text/plain");
 
@@ -33,6 +44,21 @@ export class Clipboard {
       }
       this.insertDelta(delta);
     });
+  }
+
+  /**
+   * 新增：处理图片 演示转换base64 生产环境通常是上传服务器拿到URL
+   * @param file
+   */
+  private _handleImageFile(file: File) {
+    const render = new FileReader();
+    render.onload = (e) => {
+      const base64 = e.target?.result as string;
+      if (base64) {
+        this.editor.insertImage(base64);
+      }
+    };
+    render.readAsDataURL(file);
   }
 
   /**
