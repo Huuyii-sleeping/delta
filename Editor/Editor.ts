@@ -75,6 +75,35 @@ export class Editor extends EventEmitter {
   bindEvents() {
     this.dom.addEventListener("click", (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+
+      // 待办事项
+      if (target.classList.contains("todo-checkbox")) {
+        const selection = this.selection.getSelection();
+        this.lastSelection = selection;
+
+        e.preventDefault();
+        const lineNode = target.closest(".todo-item");
+        if (lineNode) {
+          const index = DocumentHelper.findDOMNodeIndex(this.dom, target);
+          if (index !== -1) {
+            const format = DocumentHelper.getLineFormat(this.doc, index);
+            console.log("format:", format);
+            const newStatus =
+              format.list === "checked" ? "unchecked" : "checked";
+            const lineEnd = DocumentHelper.findLineEnd(this.doc, index);
+            const change = new Delta()
+              .retain(lineEnd)
+              .retain(1, { list: newStatus });
+
+            this.submitChange(change);
+          }
+        }
+        this.selection.setSelection(this.lastSelection?.index as number);
+        this.lastSelection = null;
+        return;
+      }
+
+      // 超链接
       const linkNode = target.closest("a");
       if (linkNode && linkNode.getAttribute("href")) {
         if (e.ctrlKey || e.metaKey) {

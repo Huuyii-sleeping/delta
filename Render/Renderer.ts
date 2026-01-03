@@ -81,36 +81,45 @@ export class Renderer {
         continue;
       }
 
-      // === 处理普通行 ===
       let contentHtml = this._renderInlineOps(line.ops);
       if (!contentHtml) contentHtml = "<br>";
 
       if (blockAttrs.list) {
-        // 列表处理逻辑 (保持不变)
-        const listType = blockAttrs.list === "ordered" ? "ol" : "ul";
-        const prevLine = lines[i - 1];
-        const nextLine = lines[i + 1];
+        // 代办事项
+        if (blockAttrs.list === "checked" || blockAttrs.list === "unchecked") {
+          const isChecked = blockAttrs.list === "checked";
+          html += `<div class="todo-item ${
+            isChecked ? "is-completed" : ""
+          }"><span class="todo-checkbox" contenteditable="false">${
+            isChecked ? "☑️" : "⬜"
+          }</span><span class="todo-content">${contentHtml}</span></div>`;
+        } else {
+          // 列表处理逻辑 (保持不变)
+          const listType = blockAttrs.list === "ordered" ? "ol" : "ul";
+          const prevLine = lines[i - 1];
+          const nextLine = lines[i + 1];
 
-        const prevLineType =
-          prevLine?.attrs?.list === "ordered"
-            ? "ol"
-            : prevLine?.attrs?.list
-            ? "ul"
-            : null;
-        if (listType !== prevLineType) {
-          html += `<${listType}>`;
-        }
+          const prevLineType =
+            prevLine?.attrs?.list === "ordered"
+              ? "ol"
+              : prevLine?.attrs?.list
+              ? "ul"
+              : null;
+          if (listType !== prevLineType) {
+            html += `<${listType}>`;
+          }
 
-        html += `<li>${contentHtml}</li>`;
+          html += `<li>${contentHtml}</li>`;
 
-        const nextLineType =
-          nextLine?.attrs?.list === "ordered"
-            ? "ol"
-            : nextLine?.attrs?.list
-            ? "ul"
-            : null;
-        if (listType !== nextLineType) {
-          html += `</${listType}>`;
+          const nextLineType =
+            nextLine?.attrs?.list === "ordered"
+              ? "ol"
+              : nextLine?.attrs?.list
+              ? "ul"
+              : null;
+          if (listType !== nextLineType) {
+            html += `</${listType}>`;
+          }
         }
       } else if (blockAttrs.header) {
         const tagName = `h${blockAttrs.header}`;

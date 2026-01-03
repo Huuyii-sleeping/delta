@@ -100,6 +100,13 @@ export class SelectionManager {
   private _getNodeLength(element: Element): number {
     let len = 0;
     element.childNodes.forEach((child) => {
+      // 遇到复选框直接跳过就行
+      if (
+        child.nodeType === Node.ELEMENT_NODE &&
+        (child as Element).classList.contains("todo-checkbox")
+      ) {
+        return;
+      }
       if (child.nodeName === "IMG" || child.nodeName === "HR") {
         len += 1;
       } else {
@@ -129,6 +136,12 @@ export class SelectionManager {
   private _calculateFragmentLength(root: Node): number {
     let len = 0;
     root.childNodes.forEach((child) => {
+      if (
+        child.nodeType === Node.ELEMENT_NODE &&
+        (child as Element).classList.contains("todo-checkbox")
+      ) {
+        return;
+      }
       if (child.nodeName === "IMG" || child.nodeName === "HR") {
         len += 1;
       } else if (child.nodeType === Node.TEXT_NODE) {
@@ -218,13 +231,16 @@ export class SelectionManager {
     element: Element,
     localIndex: number
   ): { node: Node; offset: number } | null {
-    if (localIndex === 0) {
-      return { node: element, offset: 0 };
-    }
-
     let current = 0;
     for (let i = 0; i < element.childNodes.length; i++) {
       const child = element.childNodes[i];
+
+      if (
+        child.nodeType === Node.ELEMENT_NODE &&
+        (child as Element).classList.contains("todo-checkbox")
+      ) {
+        continue; // 直接 continue，不要增加 current
+      }
 
       if (child.nodeName === "IMG" || child.nodeName === "HR") {
         if (current + 1 >= localIndex) {

@@ -88,6 +88,12 @@ export class SlashMenu {
           this.editor.insertDivider();
         },
       },
+      {
+        icon: "✅",
+        label: "待办列表",
+        hint: "[]",
+        action: () => this.editor.formatLine("list", "unchecked"),
+      },
     ];
   }
 

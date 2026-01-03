@@ -23,6 +23,9 @@ export class InputManager {
     { match: /^1\.$/, format: "list", value: "ordered", length: 2 },
     { match: /^>$/, format: "blockquote", value: true, length: 1 },
     { match: /^```$/, format: "code-block", value: true, length: 3 },
+    { match: /^\[\]$/, format: "list", value: "unchecked", length: 2 },
+    { match: /^\[ \]$/, format: "list", value: "unchecked", length: 3 },
+    { match: /^\[x\]$/, format: "list", value: "checked", length: 3 },
   ];
 
   constructor(editor: Editor) {
@@ -66,7 +69,6 @@ export class InputManager {
       // 稳妥做法：假设光标在输入开始的位置
       // 或者直接插入，使用updateView进行修正
       const change = new Delta().retain(insertIndex).insert(e.data);
-      // this._handleDeltaChange(change, currentIndex, e.data.length);
       this.editor.history.record(change, this.editor.doc, this.lastSelection);
       this.editor.doc = this.editor.doc.compose(change);
       this.editor.updateView();

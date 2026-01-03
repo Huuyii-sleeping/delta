@@ -89,6 +89,14 @@ export class DocumentHelper {
           if (child === targetNode) {
             return index;
           }
+
+          if (
+            child.nodeType === Node.ELEMENT_NODE &&
+            (child as Element).classList.contains("todo-checkbox")
+          ) {
+            continue;
+          }
+
           if (child.nodeType === Node.TEXT_NODE) {
             index += (child.textContent || "").length;
           } else if (child.nodeName === "IMG") {
@@ -110,6 +118,12 @@ export class DocumentHelper {
   private static _calculateLineLength(line: Element): number {
     let len = 0;
     line.childNodes.forEach((child) => {
+      if (
+        child.nodeType === Node.ELEMENT_NODE &&
+        (child as Element).classList.contains("todo-checkbox")
+      ) {
+        return;
+      }
       if (child.nodeType === Node.TEXT_NODE) {
         len += (child.textContent || "").length;
       } else if (child.nodeName === "IMG") {

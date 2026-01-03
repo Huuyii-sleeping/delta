@@ -303,3 +303,25 @@ span.token {
 .editor-divider:hover {
   border-top-color: #ccc;
 }
+
+/* Todo 列表样式 */
+.todo-item {
+  display: flex;
+  align-items: flex-start; /* 对齐顶部，防止多行文本时错位 */
+  margin: 4px 0;
+  line-height: 1.6;
+}
+
+.todo-checkbox {
+  margin-right: 8px;
+  cursor: pointer;
+  user-select: none; /* 防止双击选中复选框 */
+  font-size: 1.1em;
+  flex-shrink: 0; /* 防止复选框被压缩 */
+}
+
+/* 完成状态：文字加删除线，颜色变淡 */
+.todo-item.is-completed .todo-content {
+  text-decoration: line-through;
+  color: #888;
+}
