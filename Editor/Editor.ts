@@ -226,7 +226,7 @@ export class Editor extends EventEmitter {
 
     // 找到当前行的结尾 => 换行符的位置
     const lineEndIndex = DocumentHelper.findLineEnd(this.doc, range.index);
-    
+
     const change = new Delta()
       .retain(lineEndIndex)
       .retain(1, { [format]: value });
@@ -316,6 +316,23 @@ export class Editor extends EventEmitter {
     this.updateView();
 
     this.selection.setSelection(index + 2);
+  }
+
+  insertTable(rows: number = 3, cols: number = 2) {
+    const range = this.selection.getSelection();
+    if (!range) return;
+    const delta = new Delta().retain(range.index);
+    delta.insert("\n");
+    for (let r = 0; r < rows; r++) {
+      const rowId = DocumentHelper.generateId();
+      for (let c = 0; c < cols; c++) {
+        // 每个结尾都是回车并携带table的属性
+        delta.insert(" ");
+        delta.insert("\n", { table: rowId });
+      }
+    }
+    this.submitChange(delta);
+    this.selection.setSelection(range.index + 2);
   }
 
   /**

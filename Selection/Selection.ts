@@ -65,6 +65,9 @@ export class SelectionManager {
       ) {
         return current as Element;
       }
+      if (current.nodeName === "TD") {
+        return current as Element;
+      }
       current = current.parentNode;
     }
     return null;
@@ -88,6 +91,14 @@ export class SelectionManager {
           const li = listItems[j];
           if (li === targetLine) return index;
           index += this._getNodeLength(li) + 1;
+        }
+      } else if (node.classList.contains("table-wrapper")) {
+        const tds = node.querySelectorAll("td");
+        for (let k = 0; k < tds.length; k++) {
+          const td = tds[k];
+          if (td === targetLine) return index;
+          // 记得每一行的最后都具有一个回车
+          index += this._getNodeLength(td) + 1;
         }
       } else {
         if (node === targetLine) return index;
@@ -207,6 +218,16 @@ export class SelectionManager {
 
           if (currentLength + lineLength > targetIndex) {
             return this._findInLine(li, targetIndex - currentLength);
+          }
+          currentLength += lineLength;
+        }
+      } else if (node.classList.contains("table-wrapper")) {
+        const tds = node.querySelectorAll("td");
+        for (let k = 0; k < tds.length; k++) {
+          const td = tds[k];
+          const lineLength = this._getNodeLength(td) + 1;
+          if (currentLength + lineLength > targetIndex) {
+            return this._findInLine(td, targetIndex - currentLength);
           }
           currentLength += lineLength;
         }

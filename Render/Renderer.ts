@@ -36,111 +36,153 @@ export class Renderer {
     let i = 0;
     while (i < lines.length) {
       const line = lines[i];
-      const blockAttrs = line.attrs || {};
+      const attrs = line.attrs || {};
 
-      let styleStr = "";
-
-      if (blockAttrs.align) {
-        styleStr += `text-align: ${blockAttrs.align};`;
-      }
-      // [TODO] 可能会有其他不同的样式，这里可以进行扩展
-
-      const styleAttr = styleStr ? ` style="${styleStr}"` : "";
-
-      if (blockAttrs["code-block"]) {
-        let codeLines: string[] = [];
-        let j = i;
-
-        while (
-          j < lines.length &&
-          lines[j].attrs &&
-          lines[j].attrs["code-block"]
-        ) {
-          const rawText = lines[j].ops
-            .map((op) => (typeof op.insert === "string" ? op.insert : ""))
-            .join("");
-          codeLines.push(rawText);
-          j++;
-        }
-
-        // 将多行文本用 \n 拼接，Prism 才能正确处理多行注释
-        const fullCodeText = codeLines.join("\n");
-        const lang = "javascript"; // 后续可从 blockAttrs 获取语言
-        let highlighted = "";
-
-        if (Prism.languages[lang]) {
-          highlighted = Prism.highlight(
-            fullCodeText,
-            Prism.languages[lang],
-            lang
-          );
-        } else {
-          highlighted = this._escapeHtml(fullCodeText);
-        }
-
-        if (fullCodeText.endsWith("\n")) highlighted += "\n";
-
-        html += `<pre class="language-${lang}"${styleAttr}><code>${highlighted}</code></pre>`;
-
-        // 注意：因为循环末尾没有 i++ (我们是手动控制)，所以这里赋值即可
-        i = j;
+      if (attrs["code-block"]) {
+        const result = this._renderCodeBlock(lines, i);
+        html += result.html;
+        i = result.nextIndex;
         continue;
       }
 
-      let contentHtml = this._renderInlineOps(line.ops);
-      if (!contentHtml) contentHtml = "<br>";
-
-      if (blockAttrs.list) {
-        // 代办事项
-        if (blockAttrs.list === "checked" || blockAttrs.list === "unchecked") {
-          const isChecked = blockAttrs.list === "checked";
-          html += `<div class="todo-item ${
-            isChecked ? "is-completed" : ""
-          }"${styleAttr}><span class="todo-checkbox" contenteditable="false">${
-            isChecked ? "☑️" : "⬜"
-          }</span><span class="todo-content">${contentHtml}</span></div>`;
-        } else {
-          // 列表处理逻辑 (保持不变)
-          const listType = blockAttrs.list === "ordered" ? "ol" : "ul";
-          const prevLine = lines[i - 1];
-          const nextLine = lines[i + 1];
-
-          const prevLineType =
-            prevLine?.attrs?.list === "ordered"
-              ? "ol"
-              : prevLine?.attrs?.list
-              ? "ul"
-              : null;
-          if (listType !== prevLineType) {
-            html += `<${listType}>`;
-          }
-
-          html += `<li${styleAttr}>${contentHtml}</li>`;
-
-          const nextLineType =
-            nextLine?.attrs?.list === "ordered"
-              ? "ol"
-              : nextLine?.attrs?.list
-              ? "ul"
-              : null;
-          if (listType !== nextLineType) {
-            html += `</${listType}>`;
-          }
-        }
-      } else if (blockAttrs.header) {
-        html += `<h${blockAttrs.header}${styleAttr}>${contentHtml}</h${blockAttrs.header}>`;
-      } else if (blockAttrs.blockquote) {
-        html += `<blockquote${styleAttr}>${contentHtml}</blockquote>`;
-      } else {
-        const finalContent = contentHtml === "" ? "<br>" : contentHtml;
-        html += `<div${styleAttr}>${finalContent}</div>`;
+      if (attrs["table"]) {
+        const result = this._renderTable(lines, i);
+        html += result.html;
+        i = result.nextIndex;
+        continue;
       }
 
-      // 移动到下一行
+      if (attrs["list"]) {
+        html += this._renderList(lines, i);
+        i++;
+        continue;
+      }
+
+      html += this._renderStandardBlock(line);
+      i++;
+    }
+    return html;
+  }
+
+  private _renderList(lines: any[], index: number): string {
+    const line = lines[index];
+    const attrs = line.attrs;
+    const content = this._renderInlineOps(line.ops);
+    const styleAttr = this._getStyleAttr(attrs);
+
+    if (attrs.list === "checked" || attrs.list === "unchecked") {
+      const isChecked = attrs.list === "checked";
+      return `<div class="todo-item ${
+        isChecked ? "is-completed" : ""
+      }"${styleAttr}><span class="todo-checkbox" contenteditable="false">${
+        isChecked ? "☑️" : "⬜"
+      }</span><span class="todo-content">${content}</span></div>`;
+    }
+
+    const listType = attrs.list === "ordered" ? "ol" : "ul";
+    const prevLine = lines[index - 1];
+    const nextLine = lines[index + 1];
+    let html = "";
+
+    const prevType = this._getListType(prevLine?.attrs?.list);
+    if (listType !== prevType) {
+      html += `<${listType}>`;
+    }
+    html += `<li${styleAttr}>${content}</li>`;
+
+    const nextType = this._getListType(nextLine?.attrs?.list);
+    if (listType !== nextType) {
+      html += `</${listType}>`;
+    }
+    return html;
+  }
+
+  private _renderStandardBlock(line: any): string {
+    const attrs = line.attrs || {};
+    let content = this._renderInlineOps(line.ops);
+    if (!content) content = "<br>";
+
+    const styleAttr = this._getStyleAttr(attrs);
+    if (attrs.header) {
+      return `<h${attrs.header}${styleAttr}>${content}</h${attrs.header}>`;
+    }
+    if (attrs.blockquote) {
+      return `<blockquote${styleAttr}>${content}</blockquote>`;
+    }
+    return `<div${styleAttr}>${content}</div>`;
+  }
+
+  private _renderTable(lines: any[], startIndex: number) {
+    let i = startIndex;
+    const tableLines = [];
+    while (i < lines.length && lines[i].attrs?.table) {
+      tableLines.push(lines[i]);
       i++;
     }
 
-    return html;
+    let html = '<div class="table-wrapper"><table class="editor-table"><tbody>';
+    let currentRowId: string | null = null;
+    tableLines.forEach((line) => {
+      const rowId = line.attrs.table;
+      const content = this._renderInlineOps(line.ops);
+      const styleAttr = this._getStyleAttr(line.attrs);
+
+      // 如果换行，就闭合并且执行下一行
+      if (rowId !== currentRowId) {
+        if (currentRowId !== null) {
+          html += "</tr>";
+        }
+        html += `<tr data-row="${rowId}">`;
+        currentRowId = rowId;
+      }
+      html += `<td${styleAttr}>${content}</td>`;
+    });
+
+    if (currentRowId !== null) {
+      html += "</tr>";
+    }
+    html += "</tbody></table></div>";
+    return { html, nextIndex: i };
+  }
+
+  private _renderCodeBlock(lines: any[], startIndex: number) {
+    let i = startIndex;
+    const codeLines: string[] = [];
+    while (i < lines.length && lines[i].attrs && lines[i].attrs["code-block"]) {
+      const rawText = lines[i].ops
+        .map((op: Op) => (typeof op.insert === "string" ? op.insert : ""))
+        .join("");
+      codeLines.push(rawText);
+      i++;
+    }
+
+    const fullCodeText = codeLines.join("\n");
+    const lang = "javascript";
+    let highlighted = "";
+    if (Prism.languages[lang]) {
+      highlighted = Prism.highlight(fullCodeText, Prism.languages[lang], lang);
+    } else {
+      highlighted = this._escapeHtml(fullCodeText);
+    }
+
+    const styleAttr = this._getStyleAttr(lines[startIndex].attrs);
+    const html = `<pre class="language-${lang}"${styleAttr}><code>${highlighted}</code></pre>`;
+    return { html, nextIndex: i };
+  }
+
+  private _getStyleAttr(attrs: any): string {
+    if (!attrs) return "";
+    let styleStr = "";
+    if (attrs.align) {
+      styleStr += `text-align: ${attrs.align};`;
+    }
+    return styleStr ? ` style="${styleStr}"` : "";
+  }
+
+  private _getListType(listAttr: string | undefined): string | null {
+    if (listAttr === "ordered") return "ol";
+    if (listAttr === "bullet") return "ul";
+    return null;
   }
 
   /**
@@ -243,37 +285,7 @@ export class Renderer {
     });
     return content;
   }
-
-  /**
-   * 渲染块级元素
-   * 默认包裹在 div 或者 p 里面
-   * 如果具有 header 就放在 h 标签当中
-   * @param content
-   * @param attributes
-   */
-  private _renderBlock(
-    content: string,
-    attributes?: Record<string, any>
-  ): string {
-    let tagName = "div";
-
-    if (attributes) {
-      if (attributes.header) {
-        tagName = `h${attributes.header}`;
-      }
-      // [新增] 引用块
-      else if (attributes.blockquote) {
-        tagName = "blockquote";
-      }
-      // [新增] 代码块 (通常需要配合 pre 标签，这里简化处理)
-      else if (attributes["code-block"]) {
-        tagName = "pre";
-      }
-    }
-
-    return `<${tagName}>${content}</${tagName}>`;
-  }
-
+  
   /**
    *
    * @param str

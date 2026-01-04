@@ -34,11 +34,11 @@ export class SlashMenu {
 
   private _getItems(): MenuItem[] {
     return [
+      // --- 标题 ---
       {
         icon: "H1",
         label: "一级标题",
         hint: "#",
-        // [修改] 不再用 action，而是直接描述意图
         format: "header",
         value: 1,
       },
@@ -46,38 +46,88 @@ export class SlashMenu {
         icon: "H2",
         label: "二级标题",
         hint: "##",
-        action: () => this.editor.formatLine("header", 2),
+        format: "header",
+        value: 2,
       },
       {
         icon: "📝",
         label: "文本",
         hint: "",
-        action: () => this.editor.formatLine("header", null), // 清除标题即为普通文本
+        format: "header",
+        value: null, // 清除标题
       },
+
+      // --- 列表 ---
       {
         icon: "•",
         label: "无序列表",
         hint: "- ",
-        action: () => this.editor.formatLine("list", "bullet"),
+        format: "list",
+        value: "bullet",
       },
       {
         icon: "1.",
         label: "有序列表",
         hint: "1. ",
-        action: () => this.editor.formatLine("list", "ordered"),
+        format: "list",
+        value: "ordered",
       },
+      {
+        icon: "✅",
+        label: "待办列表",
+        hint: "[]",
+        format: "list",
+        value: "unchecked",
+      },
+
+      // --- 引用 ---
       {
         icon: "“",
         label: "引用块",
         hint: "> ",
-        action: () => this.editor.formatLine("blockquote", true),
+        format: "blockquote",
+        value: true,
       },
+
+      // --- 对齐方式 ---
+      {
+        icon: "⬅️",
+        label: "左对齐",
+        hint: "默认",
+        format: "align",
+        value: null,
+      },
+      {
+        icon: "↔️",
+        label: "居中对齐",
+        hint: "",
+        format: "align",
+        value: "center",
+      },
+      {
+        icon: "➡️",
+        label: "右对齐",
+        hint: "",
+        format: "align",
+        value: "right",
+      },
+      {
+        icon: "📰",
+        label: "两端对齐",
+        hint: "Justify",
+        format: "align",
+        value: "justify",
+      },
+
+      // --- 复杂操作 (保留 Action) ---
+      // 代码块涉及多行插入，比较复杂，暂时保留 action
       {
         icon: "📦",
         label: "代码块",
         hint: "```",
-        action: () => this.editor.insertCodeBlock(), // 调用你之前实现的方法
+        action: () => this.editor.insertCodeBlock(),
       },
+      // 图片需要弹窗，必须用 action
       {
         icon: "🖼️",
         label: "插入图片",
@@ -87,41 +137,12 @@ export class SlashMenu {
           if (url) this.editor.insertImage(url);
         },
       },
+      // 分割线是插入操作，保留 action
       {
         icon: "➖",
         label: "分割线",
         hint: "---",
         action: () => this.editor.insertDivider(),
-      },
-      {
-        icon: "✅",
-        label: "待办列表",
-        hint: "[]",
-        action: () => this.editor.formatLine("list", "unchecked"),
-      },
-      {
-        icon: "⬅️",
-        label: "左对齐",
-        hint: "默认",
-        action: () => this.editor.formatLine("align", null),
-      },
-      {
-        icon: "↔️",
-        label: "居中对齐",
-        hint: "",
-        action: () => this.editor.formatLine("align", "center"),
-      },
-      {
-        icon: "➡️",
-        label: "右对齐",
-        hint: "",
-        action: () => this.editor.formatLine("align", "right"),
-      },
-      {
-        icon: "📰",
-        label: "两端对齐",
-        hint: "Justify",
-        action: () => this.editor.formatLine("align", "justify"),
       },
     ];
   }
@@ -147,7 +168,6 @@ export class SlashMenu {
   }
 
   private _execute(item: MenuItem) {
-    // 删除用户输入的光标 /
     const range = this.editor.selection.getSelection();
     if (!range) {
       this.hide();
@@ -169,8 +189,11 @@ export class SlashMenu {
       this.editor.submitChange(change);
       this.editor.selection.setSelection(range.index - 1);
     } else if (item.action) {
-      this.editor.deleteText(range.index - 1, 1);
+      const targetIndex = range.index - 1;
+      this.editor.deleteText(targetIndex, 1);
       setTimeout(() => {
+        this.editor.dom.focus();
+        this.editor.selection.setSelection(targetIndex);
         item.action!();
       }, 0);
     }

@@ -340,3 +340,27 @@ span.token {
   min-height: 1.5em; /* 确保空行也有高度，方便点击 */
   line-height: 1.6; /* 设置舒适的行高 */
 }
+
+.table-wrapper {
+  margin: 1em 0;
+  overflow-x: auto; /* 防止表格过宽撑破布局 */
+}
+
+.editor-table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed; /* 固定列宽，平分宽度 */
+}
+
+.editor-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  min-width: 50px;
+  vertical-align: top; /* 默认顶部对齐 */
+  background-color: #fff;
+}
+
+/* 选中或 hover 效果 (可选) */
+.editor-table tr:hover {
+  background-color: #f9f9f9;
+}
