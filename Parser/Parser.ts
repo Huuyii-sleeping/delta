@@ -1,4 +1,5 @@
 import Delta from "../Delta/Delta";
+import { DocumentHelper } from "../Editor/Helper/DocumentHelper";
 
 export class Parser {
   parse(html: string): Delta {
@@ -47,9 +48,13 @@ export class Parser {
       const element = node as HTMLElement;
       const tagName = element.tagName.toLowerCase();
       const newAttributes = { ...attributes };
-      let nextOptions = { ...options };
+      let nextOptions = { ...options } as any;
 
       if (element.classList.contains("todo-checkbox")) return;
+
+      if (tagName === "tr") {
+        nextOptions.rowId = DocumentHelper.generateId();
+      }
 
       if (tagName === "img") {
         const src = element.getAttribute("src");
@@ -117,7 +122,16 @@ export class Parser {
         this._traverse(child, delta, newAttributes, nextOptions);
       });
 
+      // 处理表格类型
+      if (tagName === "td" || tagName === "th") {
+        if (nextOptions.rowId) {
+          delta.insert("\n", { table: nextOptions.rowId, ...newAttributes });
+        }
+        return;
+      }
+
       if (this._isBlock(tagName) || element.classList.contains("todo-item")) {
+        if (nextOptions.rowId) return;
         const blockAttributes: any = {};
         if (tagName === "h1") blockAttributes.header = 1;
         if (tagName === "h2") blockAttributes.header = 2;
