@@ -109,9 +109,7 @@ export class InputManager {
     const change = this.getDeltaFromInput(e, currentIndex);
     if (change) {
       const oldDocLength = this.editor.doc.length();
-      this.editor.history.record(change, this.editor.doc, range);
-      this.editor.doc = this.editor.doc.compose(change);
-      this.editor.updateView();
+      this.editor.submitChange(change);
 
       let newIndex = currentIndex;
       const newDocLength = this.editor.doc.length();

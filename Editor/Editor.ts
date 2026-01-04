@@ -12,6 +12,7 @@ import { InputManager } from "./Helper/InputManager";
 import { DragManager } from "./Helper/DragManager";
 import { DocumentHelper } from "./Helper/DocumentHelper";
 import { ShortcutManager } from "./Helper/ShortcutManager";
+import { StorageManager } from "../Storage/Storage";
 
 export class Editor extends EventEmitter {
   dom: HTMLElement;
@@ -33,6 +34,7 @@ export class Editor extends EventEmitter {
   inputManager: InputManager;
   dragManager: DragManager;
   shortcutManager: ShortcutManager;
+  storageManager: StorageManager;
 
   constructor(selector: string) {
     super();
@@ -54,6 +56,19 @@ export class Editor extends EventEmitter {
     this.inputManager = new InputManager(this);
     this.dragManager = new DragManager(this);
     this.shortcutManager = new ShortcutManager(this);
+    this.storageManager = new StorageManager(this);
+
+    const statusDiv = document.getElementById("editor-status");
+    if (statusDiv) {
+      this.storageManager.onStatusChange = (status) => {
+        if (status) statusDiv.innerHTML = "Saving";
+        if (status) statusDiv.innerHTML = "All Changed Saved";
+        if (status) statusDiv.innerHTML = "Saved Error";
+      };
+    }
+
+    // 保证数据的持久储存
+    this.storageManager.load();
 
     this.updateView();
     this.bindEvents();
@@ -136,6 +151,8 @@ export class Editor extends EventEmitter {
     this.history.record(change, this.doc, range);
     this.doc = this.doc.compose(change);
     this.updateView();
+    // 内容变了，触发事件监听
+    this.emit("text-change", this.doc);
   }
 
   enable(enabled: boolean = true) {

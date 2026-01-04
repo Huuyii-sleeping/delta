@@ -77,7 +77,11 @@
       <button onmousedown="event.preventDefault(); editor.format('code', true)">
         Inline Code ``
       </button>
-      <button onmousedown="event.preventDefault(); editor.formatLine('list', 'unchecked')">todoList</button>
+      <button
+        onmousedown="event.preventDefault(); editor.formatLine('list', 'unchecked')"
+      >
+        todoList
+      </button>
       <button onmousedown="event.preventDefault(); search()">搜索</button>
       <button onmousedown="event.preventDefault(); replace()">替换</button>
       <button onclick="save()">保存到控制台</button>
@@ -86,6 +90,16 @@
       <button onclick="window.editor.disable()">只读模式</button>
     </div>
     <div id="editor" data-placeholder="请输入正文..."></div>
+    <div
+      id="editor-status"
+      style="
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        color: #888;
+        font-size: 12px;
+      "
+    ></div>
     <script type="module">
       import { Editor } from "./Editor/Editor.ts";
 
@@ -97,7 +111,7 @@
       window.load = load;
       window.addLink = addLink;
       window.search = search;
-      window.replace = replace
+      window.replace = replace;
       window.editor.on("selection-change", (range) => {
         if (!range) return;
         const formats = window.editor.getFormat();
@@ -111,14 +125,14 @@
       });
 
       function replace() {
-        const replaceContent = prompt("请输入替换内容")
-        if(!replaceContent) return 
-        editor.replace("", replaceContent)
+        const replaceContent = prompt("请输入替换内容");
+        if (!replaceContent) return;
+        editor.replace("", replaceContent);
       }
 
       function search() {
         const searchContent = prompt("请输入搜索内容");
-        if(!searchContent) return 
+        if (!searchContent) return;
         editor.search(searchContent);
       }
 
