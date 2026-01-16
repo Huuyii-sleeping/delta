@@ -118,11 +118,7 @@ export class SelectionManager {
       ) {
         return;
       }
-      if (
-        child.nodeName === "BR" ||
-        child.nodeName === "IMG" ||
-        child.nodeName === "HR"
-      ) {
+      if (child.nodeName === "BR") {
         if (element.childNodes.length > 1) len += 1;
       }
       if (child.nodeName === "IMG" || child.nodeName === "HR") {

@@ -13,7 +13,7 @@ import { DragManager } from "./Helper/DragManager";
 import { DocumentHelper } from "./Helper/DocumentHelper";
 import { ShortcutManager } from "./Helper/ShortcutManager";
 import { StorageManager } from "../Storage/Storage";
-import { TableMenu } from "../TableMenu/TableManu";
+import { TableMenu } from "../TableMenu/TableMenu";
 
 export class Editor extends EventEmitter {
   dom: HTMLElement;

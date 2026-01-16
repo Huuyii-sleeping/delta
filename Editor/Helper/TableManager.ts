@@ -50,19 +50,44 @@ export class TableManager {
 
   /**
    * 删除当前行
-   * @param cellIndex 
-   * @returns 
+   * @param cellIndex
+   * @returns
    */
   deleteRow(cellIndex: number) {
     const format = DocumentHelper.getLineFormat(this.editor.doc, cellIndex);
     const currentRowId = format.table;
     if (!currentRowId) return;
 
-    let startToDelete = -1,
-      lengthToDelete = 0,
+    // 删除行，就要找到行所在位置的开头和结尾的位置
+    let firstNewlineIndex = -1,
+      lastNewlineIndex = -1,
       currentPos = 0;
     this.editor.doc.ops.forEach((op) => {
       const len = typeof op.insert === "string" ? op.insert.length : 1;
+
+      if (op.attributes && op.attributes.table === currentRowId) {
+        if (typeof op.insert === "string") {
+          const relativeIndex = op.insert.indexOf("\n");
+          if (relativeIndex !== -1) {
+            if (firstNewlineIndex === -1) {
+              firstNewlineIndex = currentPos + relativeIndex;
+            }
+            lastNewlineIndex = currentPos + op.insert.lastIndexOf("\n");
+          }
+        }
+      }
+      currentPos += len;
     });
+
+    if (firstNewlineIndex === -1 || lastNewlineIndex === -1) return;
+
+    const rowStart = DocumentHelper.findLineStart(
+      this.editor.doc,
+      firstNewlineIndex
+    );
+    const rowEnd = lastNewlineIndex + 1;
+    const lengthToDelete = rowEnd - rowStart;
+    const delta = new Delta().retain(rowStart).delete(lengthToDelete);
+    this.editor.submitChange(delta);
   }
 }

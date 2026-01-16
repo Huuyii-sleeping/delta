@@ -88,12 +88,15 @@ export class TableMenu {
   }
 
   private _insertRow(offset: number) {
-    if(this.targetCellIndex !== null) {
-        this.tableManager.insertRow(this.targetCellIndex, offset)
+    if (this.targetCellIndex !== null) {
+      this.tableManager.insertRow(this.targetCellIndex, offset);
     }
   }
 
-  private _deleteRow(){
-    // [TODO] 待做删除表格行
+  private _deleteRow() {
+    if (this.targetCellIndex !== null) {
+      this.tableManager.deleteRow(this.targetCellIndex);
+      this.targetCellIndex = null;
+    }
   }
 }
