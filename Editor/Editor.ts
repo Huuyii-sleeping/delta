@@ -15,6 +15,7 @@ import { ShortcutManager } from "./Helper/ShortcutManager";
 import { StorageManager } from "../Storage/Storage";
 import { TableMenu } from "../TableMenu/TableMenu";
 import { Serializer } from "../Serializer/Serializer";
+import { LinkTooltip } from "../LinkTooltip/LinkTooltip";
 
 export class Editor extends EventEmitter {
   dom: HTMLElement;
@@ -49,6 +50,8 @@ export class Editor extends EventEmitter {
   tableMenu: TableMenu;
   // 支持md导出的功能
   serializer: Serializer;
+  // 对连接的更改
+  linkTooltip: LinkTooltip;
 
   constructor(selector: string) {
     super();
@@ -73,6 +76,7 @@ export class Editor extends EventEmitter {
     this.storageManager = new StorageManager(this, false);
     this.tableMenu = new TableMenu(this);
     this.serializer = new Serializer();
+    this.linkTooltip = new LinkTooltip(this);
 
     const statusDiv = document.getElementById("editor-status");
     if (statusDiv) {
