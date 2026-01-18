@@ -17,6 +17,7 @@ import { Serializer } from "../Serializer/Serializer";
 import { LinkTooltip } from "../Menu/LinkTooltip";
 import { BlockHandle } from "../Tool/BlockHandle";
 import { ImageResizer } from "../Resizer/ImageResizer";
+import { TableResizer } from "../Resizer/TableResizer";
 
 export class Editor extends EventEmitter {
   dom: HTMLElement;
@@ -49,6 +50,8 @@ export class Editor extends EventEmitter {
   storageManager: StorageManager;
   // 表格右键操作
   tableMenu: TableMenu;
+  // 表格的自由更改
+  // tableResizer: TableResizer;
   // 支持md导出的功能
   serializer: Serializer;
   // 对连接的更改
@@ -78,6 +81,7 @@ export class Editor extends EventEmitter {
     this.shortcutManager = new ShortcutManager(this);
     this.storageManager = new StorageManager(this, false);
     this.tableMenu = new TableMenu(this);
+    // this.tableResizer = new TableResizer(this);
     this.serializer = new Serializer();
     this.linkTooltip = new LinkTooltip(this);
     this.blockHandle = new BlockHandle(this);

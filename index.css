@@ -372,21 +372,36 @@ span.token {
 .editor-table {
   border-collapse: collapse;
   width: 100%;
-  table-layout: fixed; /* 固定列宽，平分宽度 */
+  table-layout: fixed !important; /* 固定列宽，平分宽度 */
 }
 
 .editor-table td {
   border: 1px solid #ddd;
+  position: relative;
   padding: 8px;
   min-width: 50px;
   vertical-align: top;
   background-color: #fff;
 
   white-space: pre-wrap;
-  word-break: break-word;
+  word-break: break-all;
+  overflow: hidden;
 }
 
 /* 选中或 hover 效果 (可选) */
 .editor-table tr:hover {
   background-color: #f9f9f9;
+}
+
+/* src/index.css */
+
+/* 拖拽时的垂直辅助线 */
+.table-resizer-handle {
+  position: fixed;
+  width: 4px;
+  background-color: #007bff;
+  cursor: col-resize;
+  z-index: 2000;
+  opacity: 0.5;
+  pointer-events: none;
 }

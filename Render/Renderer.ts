@@ -176,6 +176,9 @@ export class Renderer {
     if (attrs.align) {
       styleStr += `text-align: ${attrs.align};`;
     }
+    if (attrs.width) {
+      styleStr += `width: ${attrs.width}px`;
+    }
     return styleStr ? ` style="${styleStr}"` : "";
   }
 
